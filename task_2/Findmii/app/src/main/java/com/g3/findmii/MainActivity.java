@@ -14,6 +14,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 
+import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -78,7 +79,8 @@ public class MainActivity extends AppCompatActivity {
                         builder.setMessage("GPS is not enabled, please enable it")
                                 .setPositiveButton("Settings...", new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int id) {
-                                        // FIRE ZE MISSILES!
+                                        Intent i = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                                        startActivity(i);
                                     }
                                 })
                                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {

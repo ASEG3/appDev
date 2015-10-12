@@ -1,10 +1,14 @@
 package com.g3.findmii;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.provider.Settings;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -82,6 +86,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
+    public MapsActivity getActivity() {
+        return this;
+    }
 
     /**
      * Manipulates the map once available.
@@ -114,7 +121,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     progressDialog.dismiss();
                 }
             }
-
             public void onStatusChanged(String provider, int status, Bundle extras) {}
 
             public void onProviderEnabled(String provider) {}
@@ -147,10 +153,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public void currentLocation(){
-        if(gotPosition){
-            progressDialog.setMessage("Waiting for location");
-            progressDialog.show();
-            gotPosition = false;
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setMessage("GPS is not enabled, please enable it")
+                    .setPositiveButton("Settings...", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            Intent i = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                            startActivity(i);
+                        }
+                    })
+                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            // User cancelled the dialog
+                        }
+                    });
+            builder.create();
+            builder.show();
+        }
+        else{
+            if (gotPosition) {
+                progressDialog.setMessage("Waiting for location");
+                progressDialog.show();
+                gotPosition = false;
+            }
         }
     }
 }
