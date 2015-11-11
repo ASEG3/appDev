@@ -11,6 +11,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -18,7 +19,6 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.os.Message;
 import android.provider.Settings;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.Snackbar;
@@ -47,6 +47,9 @@ import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import messageUtils.Message;
+
+
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
@@ -58,35 +61,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     Button posButton;
     Button houseButton;
     TextView longLat;
-    HashMap<String, ArrayList<String>> networkAttempts;
-    String URL = "http://52.11.103.82:8080/Servlet/Servlet";
-    boolean setTimer;
+    String URL = "http://52.24.80.127:8080/Servlet/Servlet";
     boolean onFirstRun;
-    ContainerObject container;
-    WeightedMessage weightedMessage;
-    com.g3.findmii.Message message;
-
+    ArrayList<ArrayList<Double>> weightedLatLng;
+    ArrayList<ArrayList<String>> listOfHouses;
+    Message message;
+    Handler handler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setTimer = false;
-        onFirstRun = true;
-        networkAttempts = new HashMap<>();
-        IntentFilter mStatusIntentFilter = new IntentFilter(ContactServerTask.PARAM_OUT);
-        Receiver broadcastReciever = new Receiver(this,this);
-        LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReciever, mStatusIntentFilter);
+
         progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Waiting for location");
+        onFirstRun = true;
+        IntentFilter mStatusIntentFilter = new IntentFilter(ContactServerTask.PARAM_OUT);
+        Receiver broadcastReciever = new Receiver(this, this);
+        LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReciever, mStatusIntentFilter);
+
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapType = (Spinner) findViewById(R.id.spinner);
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,R.array.view_list,
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.view_list,
                 android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         mapType.setAdapter(adapter);
         mapFragment.getMapAsync(this);
+
 
         longLat = (TextView) findViewById(R.id.long_lat);
 
@@ -127,11 +130,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
         gotPosition = false;
-        if(longit == 0 && latid == 0)
-        {
-            progressDialog.setMessage("Waiting for location");
-            progressDialog.show();
-        }
     }
 
     public MapsActivity getActivity() {
@@ -149,17 +147,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
-
         mMap = googleMap;
 
         mMap.getUiSettings().setCompassEnabled(true);
+        mMap.getUiSettings().setZoomGesturesEnabled(true);
 
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         // Define a listener that responds to location updates
         LocationListener locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
                 setLongAndLat(location);
-                if(!gotPosition && latid != 0 && longit != 0) {
+                if(!gotPosition) {
                     LatLng pos = new LatLng(latid, longit);
                     gotPosition = true;
                     progressDialog.dismiss();
@@ -173,7 +171,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         mMap.moveCamera(CameraUpdateFactory.zoomTo(16));
                         mMap.addMarker(new MarkerOptions().position(pos).title("Here you are"));
                         //here is where we post info to the server
-                        contactServer();
+                        contactServer(longit,latid);
                     }
                 }
             }
@@ -230,7 +228,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    public void contactServer(){
+    public void contactServer(double longit, double latid){
         Intent i = new Intent(getActivity(), ContactServerTask.class);
         i.putExtra("longit", String.valueOf(longit));
         i.putExtra("latid", String.valueOf(latid));
@@ -238,9 +236,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         getActivity().startService(i);
     }
 
+    public void setOtherLocation(double lat, double lng){
+
+        LatLng pos = new LatLng(latid, longit);
+        gotPosition = true;
+        progressDialog.setMessage("Waiting for location");
+        progressDialog.setCancelable(false);
+        progressDialog.setCanceledOnTouchOutside(false);
+        progressDialog.show();
+        mMap.clear();
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
+        mMap.moveCamera(CameraUpdateFactory.zoomTo(16));
+        mMap.addMarker(new MarkerOptions().position(pos).title("Here you are"));
+        //here is where we post info to the server
+        contactServer(lng,lat);
+        progressDialog.hide();
+    }
+
     public void heatmap(){
         //use weightedmessage varible to generate the heat map
-        ArrayList<ArrayList<Double>> weightedLongLat = weightedMessage.getHouse();
+//        ArrayList<ArrayList<Double>> weightedLongLat = weightedMessage.getHouse();
     }
 
 }
@@ -264,12 +279,14 @@ class Receiver extends BroadcastReceiver {
             ByteArrayInputStream in = new ByteArrayInputStream(container);
             try {
                 ObjectInputStream is = new ObjectInputStream(in);
-                mapsActivity.container = (ContainerObject) is.readObject();
-                mapsActivity.message = mapsActivity.container.returnMessage();
-                mapsActivity.weightedMessage = mapsActivity.container.returnWeightedMessage();
+                mapsActivity.message = (Message) is.readObject();
+                mapsActivity.weightedLatLng = mapsActivity.message.getHouse();
+                mapsActivity.listOfHouses = mapsActivity.message.getHouses();
+                Log.w("WE GOT OKAY", "ITS ALL GOOD");
             }
             catch (Exception e){
                 e.printStackTrace();
+                Log.w("WE GOT BAD", "ITS ALL NOT GOOD");
             }
         }
         else if(intent.getStringExtra("STATUS").equals("ERROR")) {

@@ -25,8 +25,6 @@ import android.widget.Button;
 
 public class MainActivity extends AppCompatActivity {
 
-    double longlitude;
-    double latitude;
     LocationManager manager;
 
     @Override
@@ -74,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Log.w("PRESSED","IMPRESSEd");
                 try {
-                    if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    if (!manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
                         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
                         builder.setMessage("GPS is not enabled, please enable it")
                                 .setPositiveButton("Settings...", new DialogInterface.OnClickListener() {
@@ -100,10 +98,5 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-    }
-
-    public void setLongAndLat(Location location){
-        this.longlitude = location.getLongitude();
-        this.latitude = location.getLatitude();
     }
 }
