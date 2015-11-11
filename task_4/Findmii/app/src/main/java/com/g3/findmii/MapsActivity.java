@@ -55,18 +55,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     double longit = 0, latid = 0;
     ProgressDialog progressDialog;
+    ProgressDialog serverDialog;
     boolean gotPosition;
     LocationManager locationManager;
     Spinner mapType;
     Button posButton;
     Button houseButton;
-    TextView longLat;
     String URL = "http://52.24.80.127:8080/Servlet/Servlet";
     boolean onFirstRun;
     ArrayList<ArrayList<Double>> weightedLatLng;
     ArrayList<ArrayList<String>> listOfHouses;
     Message message;
-    Handler handler;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +74,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Waiting for location");
+        progressDialog.setCancelable(false);
+        progressDialog.setCanceledOnTouchOutside(false);
+        serverDialog = new ProgressDialog(this);
+        serverDialog.setMessage("Getting houses within 1 mile");
+        serverDialog.setCancelable(false);
+        serverDialog.setCanceledOnTouchOutside(false);
         onFirstRun = true;
         IntentFilter mStatusIntentFilter = new IntentFilter(ContactServerTask.PARAM_OUT);
         Receiver broadcastReciever = new Receiver(this, this);
@@ -90,16 +96,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mapType.setAdapter(adapter);
         mapFragment.getMapAsync(this);
 
-
-        longLat = (TextView) findViewById(R.id.long_lat);
-
         houseButton = (Button) findViewById(R.id.housebutton);
         houseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(getApplicationContext(), HouseList.class);
-//                byte[] byteHouse =
-//                startActivity(intent);
+                houseList();
             }
         });
 
@@ -173,6 +174,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         //here is where we post info to the server
                         contactServer(longit,latid);
                     }
+
                 }
             }
             public void onStatusChanged(String provider, int status, Bundle extras) {}
@@ -195,8 +197,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void setLongAndLat(Location location) {
         longit = location.getLongitude();
         latid = location.getLatitude();
-        String tmp = longit + ", " + latid;
-        longLat.setText(tmp);
     }
 
     public void currentLocation(){
@@ -219,9 +219,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         else{
             if (gotPosition) {
-                progressDialog.setMessage("Waiting for location");
-                progressDialog.setCancelable(false);
-                progressDialog.setCanceledOnTouchOutside(false);
                 progressDialog.show();
                 gotPosition = false;
             }
@@ -229,11 +226,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public void contactServer(double longit, double latid){
+        serverDialog.show();
         Intent i = new Intent(getActivity(), ContactServerTask.class);
         i.putExtra("longit", String.valueOf(longit));
         i.putExtra("latid", String.valueOf(latid));
         i.putExtra("URL", URL);
         getActivity().startService(i);
+
     }
 
     public void setOtherLocation(double lat, double lng){
@@ -249,13 +248,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.moveCamera(CameraUpdateFactory.zoomTo(16));
         mMap.addMarker(new MarkerOptions().position(pos).title("Here you are"));
         //here is where we post info to the server
-        contactServer(lng,lat);
+        contactServer(lng, lat);
         progressDialog.hide();
     }
 
     public void heatmap(){
         //use weightedmessage varible to generate the heat map
 //        ArrayList<ArrayList<Double>> weightedLongLat = weightedMessage.getHouse();
+    }
+
+    public void houseList(){
+        Intent i = new Intent(getActivity(), HouseList.class);
+        ArrayList<String> values = new ArrayList<>();
+        for(ArrayList<String> current : listOfHouses){
+            String tmp = current.get(1) + " " + current.get(2) + " " + current.get(3)
+                    + "\n" + current.get(4) + "\n" + current.get(5) + "\n" + current.get(6) + "\n"
+                    + "Price Sold: £" + current.get(7) + "\n" + "Distance: ~" + current.get(9) + " Miles";
+            values.add(tmp);
+        }
+        String[] smpValues = values.toArray(new String[values.size()]);
+        i.putExtra("houselist",smpValues);
+        getActivity().startActivity(i);
     }
 
 }
@@ -282,9 +295,19 @@ class Receiver extends BroadcastReceiver {
                 mapsActivity.message = (Message) is.readObject();
                 mapsActivity.weightedLatLng = mapsActivity.message.getHouse();
                 mapsActivity.listOfHouses = mapsActivity.message.getHouses();
+                mapsActivity.serverDialog.hide();
+                //generate heatmap
+                Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Generated Heatmap", Snackbar.LENGTH_LONG)
+                        .setActionTextColor(Color.RED)
+                        .show();
                 Log.w("WE GOT OKAY", "ITS ALL GOOD");
+
             }
             catch (Exception e){
+                mapsActivity.serverDialog.hide();
+                Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Unable to generate Heatmap", Snackbar.LENGTH_LONG)
+                        .setActionTextColor(Color.RED)
+                        .show();
                 e.printStackTrace();
                 Log.w("WE GOT BAD", "ITS ALL NOT GOOD");
             }
