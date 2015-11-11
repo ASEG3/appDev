@@ -40,7 +40,12 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.TileOverlay;
+import com.google.android.gms.maps.model.TileOverlayOptions;
+import com.google.maps.android.heatmaps.HeatmapTileProvider;
+import com.google.maps.android.heatmaps.WeightedLatLng;
 
 import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
@@ -66,6 +71,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     ArrayList<ArrayList<Double>> weightedLatLng;
     ArrayList<ArrayList<String>> listOfHouses;
     Message message;
+    ArrayList<LatLng> latlngs;
+    ArrayList<Double> weights, averagePrice;
+    ArrayList<WeightedLatLng> hmapData;
+    HeatmapTileProvider mHeatMapProvider;
+    TileOverlay mHeatMapTileOverlay;
+    final static Float MAX_ZOOM = 13.5f;
+    boolean isServerResponded = false;
 
 
     @Override
@@ -122,7 +134,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
                 } else if (parent.getItemAtPosition(position).equals("Terrain")) {
                     mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+                }else if (parent.getItemAtPosition(position).equals("Heat Map")) {
+                    if(isServerResponded) {
+                        addHeatMap();
+                    }else {
+                        Log.i("HEAT_MAP", "Cannot access server!");
+                        Snackbar.make(findViewById(android.R.id.content), "Sorry, server is not reachable!", Snackbar.LENGTH_LONG)
+                                .setActionTextColor(Color.RED)
+                                .show();
+                    }
                 }
+
             }
 
             @Override
@@ -252,11 +274,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         progressDialog.hide();
     }
 
-    public void heatmap(){
-        //use weightedmessage varible to generate the heat map
-//        ArrayList<ArrayList<Double>> weightedLongLat = weightedMessage.getHouse();
-    }
-
     public void houseList(){
         Intent i = new Intent(getActivity(), HouseList.class);
         ArrayList<String> values = new ArrayList<>();
@@ -269,6 +286,64 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         String[] smpValues = values.toArray(new String[values.size()]);
         i.putExtra("houselist",smpValues);
         getActivity().startActivity(i);
+    }
+
+
+    /*
+
+     Sets the weighted data (latitude and longitude and average price from the server)
+     Converts received lat, long into LatLng type
+    */
+    public void setDataFromServer(ArrayList<ArrayList<Double>> wLatLng){
+        //use weightedMessage variable to generate the heat map
+        latlngs = new ArrayList<>();
+        weights = new ArrayList<>();
+        averagePrice = new ArrayList<>();
+        for(int i=0;i<wLatLng.size();i++){
+            latlngs.add(new LatLng(wLatLng.get(i).get(0), wLatLng.get(i).get(1)));
+            weights.add(wLatLng.get(i).get(2));
+            averagePrice.add(wLatLng.get(i).get(3));
+        }
+       /* latlngs.add(new LatLng(50.8677065292, -0.0881093842587));
+        latlngs.add(new LatLng(latid, longit));
+        weights.add(1.0); weights.add(2.0);*/
+    }
+
+    /*
+        receives arraylist of latitude & longitude, weight
+        converts to WeightedLatLng type for the heatmap to display.
+     */
+    public void setHeatmapData(ArrayList<LatLng> dataLatLng, ArrayList<Double> latLngWeight) {
+
+        hmapData = new ArrayList<WeightedLatLng>();
+        //averagePrice = new ArrayList<>();
+        for(int i=0; i<dataLatLng.size(); i++){
+            WeightedLatLng wlatlng = new WeightedLatLng(dataLatLng.get(i),latLngWeight.get(i));
+            hmapData.add(wlatlng);
+        }
+    }
+
+    private void addHeatMap()
+    {
+        mMap.clear();
+        mHeatMapProvider = new HeatmapTileProvider.Builder().weightedData(hmapData).build();
+        mHeatMapProvider.setRadius(100);
+        mHeatMapTileOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mHeatMapProvider));
+        mHeatMapTileOverlay.clearTileCache();
+        addMarkers(latlngs, averagePrice, mMap);
+        mMap.getUiSettings().setZoomGesturesEnabled(true);
+        mMap.getUiSettings().setZoomControlsEnabled(true);
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latid,longit), MAX_ZOOM));
+    }
+
+    private void addMarkers(ArrayList<LatLng> dataLatLng, ArrayList<Double> avgPrice, GoogleMap mMap){
+        if(dataLatLng.size() != avgPrice.size()){
+            //create an exception here!
+            Log.i("HEATMAP_DATA","LatLng size must match weight size");
+        }
+        for(int i=0; i<dataLatLng.size(); i++){
+            Marker mMapMarker = mMap.addMarker(new MarkerOptions().position(dataLatLng.get(i)).title("Average price: £" + avgPrice.get(i).toString()));
+        }
     }
 
 }
@@ -296,7 +371,12 @@ class Receiver extends BroadcastReceiver {
                 mapsActivity.weightedLatLng = mapsActivity.message.getHouse();
                 mapsActivity.listOfHouses = mapsActivity.message.getHouses();
                 mapsActivity.serverDialog.hide();
-                //generate heatmap
+
+                //set heatmap data
+                mapsActivity.setDataFromServer(mapsActivity.weightedLatLng);
+                mapsActivity.setHeatmapData(mapsActivity.latlngs, mapsActivity.weights);
+                Log.w("WE GOT OKAY", "ITS ALL GOOD");
+                mapsActivity.isServerResponded = true;
                 Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Generated Heatmap", Snackbar.LENGTH_LONG)
                         .setActionTextColor(Color.RED)
                         .show();

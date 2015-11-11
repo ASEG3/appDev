@@ -31,4 +31,5 @@ dependencies {
     compile 'com.google.android.gms:play-services:8.1.0'
     compile 'cz.msebera.android:httpclient:4.4.1.1'
     compile files('libs/MessageUtils.jar')
+    compile 'com.google.maps.android:android-maps-utils:0.4+'
 }

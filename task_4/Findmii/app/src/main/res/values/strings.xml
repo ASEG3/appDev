@@ -14,5 +14,6 @@
         <item>Satellite</item>
         <item>Hybrid</item>
         <item>Terrain</item>
+        <item>Heat Map</item>
     </string-array>
 </resources>
