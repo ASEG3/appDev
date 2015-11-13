@@ -373,7 +373,7 @@ class Receiver extends BroadcastReceiver {
                     Log.w("WE GOT OKAY", "ITS ALL GOOD");
                     mapsActivity.serverDialog.hide();
                 }else{
-                    Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Generated Heatmap", Snackbar.LENGTH_LONG)
+                    Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Server not reachable", Snackbar.LENGTH_LONG)
                             .setActionTextColor(Color.RED)
                             .show();
                     Log.i("EMPTY_RESPONSE","Server returned empty data, most likely, database issue");
