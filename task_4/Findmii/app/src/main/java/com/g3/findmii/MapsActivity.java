@@ -112,7 +112,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         houseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                houseList();
+                if(isServerResponded) {
+                    houseList();
+                }else {
+                    Log.i("HEAT_MAP", "Cannot access server!");
+                    Snackbar.make(findViewById(android.R.id.content), "Sorry, server is not reachable!", Snackbar.LENGTH_LONG)
+                            .setActionTextColor(Color.RED)
+                            .show();
+                }
             }
         });
 
@@ -241,7 +248,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         else{
             if (gotPosition) {
-                progressDialog.show();
+                //progressDialog.show();
                 gotPosition = false;
             }
         }
@@ -375,12 +382,12 @@ class Receiver extends BroadcastReceiver {
                 //set heatmap data
                 mapsActivity.setDataFromServer(mapsActivity.weightedLatLng);
                 mapsActivity.setHeatmapData(mapsActivity.latlngs, mapsActivity.weights);
-                Log.w("WE GOT OKAY", "ITS ALL GOOD");
                 mapsActivity.isServerResponded = true;
                 Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Generated Heatmap", Snackbar.LENGTH_LONG)
                         .setActionTextColor(Color.RED)
                         .show();
                 Log.w("WE GOT OKAY", "ITS ALL GOOD");
+                mapsActivity.serverDialog.hide();
 
             }
             catch (Exception e){
@@ -393,6 +400,7 @@ class Receiver extends BroadcastReceiver {
             }
         }
         else if(intent.getStringExtra("STATUS").equals("ERROR")) {
+            mapsActivity.serverDialog.hide();
             Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Unable to contact server", Snackbar.LENGTH_LONG)
                     .setActionTextColor(Color.RED)
                     .show();
