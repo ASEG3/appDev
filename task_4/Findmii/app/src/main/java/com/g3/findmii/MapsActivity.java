@@ -66,7 +66,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     Spinner mapType;
     Button posButton;
     Button houseButton;
-    String URL = "http://52.24.80.127:8080/Servlet/Servlet";
+    String URL = "http://52.33.174.180:8080/Servlet/Servlet";
     boolean onFirstRun;
     ArrayList<ArrayList<Double>> weightedLatLng;
     ArrayList<ArrayList<String>> listOfHouses;
@@ -264,23 +264,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    public void setOtherLocation(double lat, double lng){
-
-        LatLng pos = new LatLng(latid, longit);
-        gotPosition = true;
-        progressDialog.setMessage("Waiting for location");
-        progressDialog.setCancelable(false);
-        progressDialog.setCanceledOnTouchOutside(false);
-        progressDialog.show();
-        mMap.clear();
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
-        mMap.moveCamera(CameraUpdateFactory.zoomTo(16));
-        mMap.addMarker(new MarkerOptions().position(pos).title("Here you are"));
-        //here is where we post info to the server
-        contactServer(lng, lat);
-        progressDialog.hide();
-    }
-
     public void houseList(){
         Intent i = new Intent(getActivity(), HouseList.class);
         ArrayList<String> values = new ArrayList<>();
@@ -375,20 +358,26 @@ class Receiver extends BroadcastReceiver {
             try {
                 ObjectInputStream is = new ObjectInputStream(in);
                 mapsActivity.message = (Message) is.readObject();
-                mapsActivity.weightedLatLng = mapsActivity.message.getHouse();
-                mapsActivity.listOfHouses = mapsActivity.message.getHouses();
-                mapsActivity.serverDialog.hide();
+                if(mapsActivity.message.getSizeOfWeighted()>0) {
+                    mapsActivity.weightedLatLng = mapsActivity.message.getHouse();
+                    mapsActivity.listOfHouses = mapsActivity.message.getHouses();
+                    mapsActivity.serverDialog.hide();
 
-                //set heatmap data
-                mapsActivity.setDataFromServer(mapsActivity.weightedLatLng);
-                mapsActivity.setHeatmapData(mapsActivity.latlngs, mapsActivity.weights);
-                mapsActivity.isServerResponded = true;
-                Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Generated Heatmap", Snackbar.LENGTH_LONG)
-                        .setActionTextColor(Color.RED)
-                        .show();
-                Log.w("WE GOT OKAY", "ITS ALL GOOD");
-                mapsActivity.serverDialog.hide();
-
+                    //set heatmap data
+                    mapsActivity.setDataFromServer(mapsActivity.weightedLatLng);
+                    mapsActivity.setHeatmapData(mapsActivity.latlngs, mapsActivity.weights);
+                    mapsActivity.isServerResponded = true;
+                    Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Generated Heatmap", Snackbar.LENGTH_LONG)
+                            .setActionTextColor(Color.RED)
+                            .show();
+                    Log.w("WE GOT OKAY", "ITS ALL GOOD");
+                    mapsActivity.serverDialog.hide();
+                }else{
+                    Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Generated Heatmap", Snackbar.LENGTH_LONG)
+                            .setActionTextColor(Color.RED)
+                            .show();
+                    Log.i("EMPTY_RESPONSE","Server returned empty data, most likely, database issue");
+                }
             }
             catch (Exception e){
                 mapsActivity.serverDialog.hide();
