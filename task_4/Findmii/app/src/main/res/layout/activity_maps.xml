@@ -16,18 +16,15 @@
         android:layout_height="match_parent">
 
         <Spinner
-            android:layout_width="200dp"
-            android:layout_height="75dp"
+            android:layout_width="140dp"
+            android:layout_height="50dp"
             android:id="@+id/spinner"
             android:spinnerMode="dropdown"
-            android:layout_alignParentTop="false"
-            android:layout_alignParentLeft="true"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentEnd="true"
             android:background="@android:drawable/btn_dropdown"
 
-            />
+            android:layout_alignParentTop="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true" />
 
         <Button
             android:layout_width="wrap_content"
@@ -36,7 +33,11 @@
             android:id="@+id/location_button"
             android:layout_alignParentBottom="true"
             android:layout_alignParentLeft="true"
-            android:layout_alignParentStart="true" />
+            android:layout_alignParentStart="true"
+            android:layout_marginLeft="5dp"
+            android:layout_marginBottom="5dp"
+            android:textColor="#ffffff"
+            android:background="@color/primary_colour" />
 
         <Button
             android:layout_width="wrap_content"
@@ -45,8 +46,14 @@
             android:id="@+id/housebutton"
             android:layout_alignParentBottom="true"
             android:layout_alignParentRight="true"
-            android:layout_alignParentEnd="true" />
+            android:layout_alignParentEnd="true"
+            android:textColor="#ffffff"
+            android:background="@color/primary_colour"
+            android:textAlignment="center"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            android:layout_marginBottom="5dp"
+            android:layout_marginRight="5dp" />
 
     </RelativeLayout>
-
 </RelativeLayout>

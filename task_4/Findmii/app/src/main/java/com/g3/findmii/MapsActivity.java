@@ -39,6 +39,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -76,8 +77,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     ArrayList<WeightedLatLng> hmapData;
     HeatmapTileProvider mHeatMapProvider;
     TileOverlay mHeatMapTileOverlay;
-    final static Float MAX_ZOOM = 13.5f;
+    final static Float MAX_ZOOM = 16.0f;
     boolean isServerResponded = false;
+    int serverRespond = 0;
 
 
     @Override
@@ -89,7 +91,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         progressDialog.setCancelable(false);
         progressDialog.setCanceledOnTouchOutside(false);
         serverDialog = new ProgressDialog(this);
-        serverDialog.setMessage("Getting houses within 1 mile");
+        serverDialog.setMessage("Getting houses within 3 miles");
         serverDialog.setCancelable(false);
         serverDialog.setCanceledOnTouchOutside(false);
         onFirstRun = true;
@@ -180,7 +182,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap = googleMap;
 
         mMap.getUiSettings().setCompassEnabled(true);
-        mMap.getUiSettings().setZoomGesturesEnabled(true);
+        mMap.getUiSettings().setZoomGesturesEnabled(false);
 
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         // Define a listener that responds to location updates
@@ -267,11 +269,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void houseList(){
         Intent i = new Intent(getActivity(), HouseList.class);
         ArrayList<String> values = new ArrayList<>();
+        int counter=0;
         for(ArrayList<String> current : listOfHouses){
             String tmp = current.get(1) + " " + current.get(2) + " " + current.get(3)
                     + "\n" + current.get(4) + "\n" + current.get(5) + "\n" + current.get(6) + "\n"
                     + "Price Sold: £" + current.get(7) + "\n" + "Distance: ~" + current.get(9) + " Miles";
             values.add(tmp);
+            counter++;
+            if(counter>1000){
+                break;
+            }
         }
         String[] smpValues = values.toArray(new String[values.size()]);
         i.putExtra("houselist",smpValues);
@@ -320,17 +327,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mHeatMapProvider.setRadius(100);
         mHeatMapTileOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mHeatMapProvider));
         mHeatMapTileOverlay.clearTileCache();
+        mMap.addMarker(new MarkerOptions().position(new LatLng(latid, longit)).title("Here you are")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
         addMarkers(latlngs, averagePrice, mMap);
-        mMap.getUiSettings().setZoomGesturesEnabled(true);
-        mMap.getUiSettings().setZoomControlsEnabled(true);
+        mMap.getUiSettings().setZoomGesturesEnabled(false);
+        mMap.getUiSettings().setZoomControlsEnabled(false);
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latid,longit), MAX_ZOOM));
     }
 
     private void addMarkers(ArrayList<LatLng> dataLatLng, ArrayList<Double> avgPrice, GoogleMap mMap){
-        if(dataLatLng.size() != avgPrice.size()){
-            //create an exception here!
-            Log.i("HEATMAP_DATA","LatLng size must match weight size");
-        }
+
         for(int i=0; i<dataLatLng.size(); i++){
             Marker mMapMarker = mMap.addMarker(new MarkerOptions().position(dataLatLng.get(i)).title("Average price: £" + avgPrice.get(i).toString()));
         }
