@@ -39,7 +39,7 @@ public class ContactServerTask extends IntentService{
         nameValuePairs.add(new BasicNameValuePair("latitude", intent.getStringExtra("longit")));
         nameValuePairs.add(new BasicNameValuePair("longitude", intent.getStringExtra("latid")));
 
-            // Execute HTTP Post Request
+        // Execute HTTP Post Request
         try {
             HttpGet httpget = new HttpGet(String.valueOf(intent.getStringExtra("URL") + "?" + URLEncodedUtils.format(nameValuePairs, "utf-8")));
             HttpResponse response = httpclient.execute(httpget);
