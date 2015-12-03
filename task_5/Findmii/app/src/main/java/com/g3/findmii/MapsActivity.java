@@ -32,6 +32,7 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.GravityCompat;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
@@ -104,6 +105,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     TileOverlay mHeatMapTileOverlay;
     final static Float MAX_ZOOM = 16.0f;
     boolean isServerResponded = false;
+    Menu menu;
+    SearchManager searchManager;
+    SearchView locationSearch;
+    SearchView budgetSearch;
+    MenuItem locationItem;
+    MenuItem budgetItem;
+    boolean searchAddress;
 
 
     @Override
@@ -176,11 +184,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void handleIntent(Intent intent) {
 
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
-            try {
-                String query = intent.getStringExtra(SearchManager.QUERY);
-                searchForAddress(query);
-            } catch (Exception e) {
+            if(searchAddress) {
+                try {
+                    String query = intent.getStringExtra(SearchManager.QUERY);
+                    searchForAddress(query);
+                } catch (Exception e) {
 
+                }
             }
         }
     }
@@ -392,17 +402,76 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
-
-        // Associate searchable configuration with the SearchView
         SearchManager searchManager =
                 (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-        SearchView searchView =
-                (SearchView) menu.findItem(R.id.search_item).getActionView();
-        searchView.setSearchableInfo(
+        this.menu = menu;
+        this.searchManager = searchManager;
+
+        locationItem = menu.findItem(R.id.location_search);
+        budgetItem = menu.findItem(R.id.budget_search);
+
+        locationSearch =
+                (SearchView) locationItem.getActionView();
+        budgetSearch =
+                (SearchView) budgetItem.getActionView();
+
+        locationSearch.setIconifiedByDefault(true);
+
+        budgetSearch.setSearchableInfo(
                 searchManager.getSearchableInfo(getComponentName()));
-        searchView.setSubmitButtonEnabled(true);
+        locationSearch.setSearchableInfo(
+                searchManager.getSearchableInfo(getComponentName()));
+
+        locationSearch.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View v) {
+                Log.v("<---", "SUP");
+
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View v) {
+                Log.v("<---", "SUP");
+                getMenu().findItem(R.id.add_place).setVisible(true);
+                getMenu().findItem(R.id.search_item).setVisible(true);
+            }
+        });
+
+        budgetSearch.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View v) {
+
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View v) {
+                getMenu().findItem(R.id.add_place).setVisible(true);
+                getMenu().findItem(R.id.search_item).setVisible(true);
+            }
+        });
+
 
         return true;
+    }
+
+    private SearchView getLocationSearch(){
+        return locationSearch;
+    }
+
+    private SearchView getBudgetSearch(){
+        return budgetSearch;
+    }
+
+    private Menu getMenu(){
+        return menu;
+    }
+
+    private void setItemsVisibility(Menu menu, MenuItem menuItem, boolean visible) {
+        for(int i = 0; i < menu.size(); i++){
+            if(!menu.getItem(i).equals(menuItem) && !menu.getItem(i).equals(menu.findItem(R.id.search_item))){
+                menu.getItem(i).setVisible(visible);
+            }
+        }
     }
 
     @Override
@@ -447,7 +516,23 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     });
             Dialog mapType = builder.create();
             mapType.show();
+            return true;
         }
+
+        if(id == R.id.location_search){
+            searchAddress = true;
+            getMenu().findItem(R.id.add_place).setVisible(false);
+            getMenu().findItem(R.id.search_item).setVisible(false);
+            return true;
+        }
+
+        if(id == R.id.budget_search){
+            searchAddress = false;
+            getMenu().findItem(R.id.add_place).setVisible(false);
+            getMenu().findItem(R.id.search_item).setVisible(false);
+            return true;
+        }
+
         return super.onOptionsItemSelected(item);
     }
 }
