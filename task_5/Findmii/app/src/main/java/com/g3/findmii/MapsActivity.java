@@ -300,7 +300,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
     /*
-
      Sets the weighted data (latitude and longitude and average price from the server)
      Converts received lat, long into LatLng type
     */
