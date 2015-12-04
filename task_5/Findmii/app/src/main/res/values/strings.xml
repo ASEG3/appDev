@@ -12,7 +12,7 @@
     <string name="m">Findmii</string>
     <string name="str_rb_normal">Normal</string>
     <string name="search_title">Normal</string>
-    <string name="search_hint">search for properties</string>
+    <string name="search_hint">Search…</string>
     <string name="str_rb_satellite">Satellite</string>
     <string name="str_rb_terrain">Terrain</string>
     <string name="long_lat_id">Position (Latitude and Longitude)</string>

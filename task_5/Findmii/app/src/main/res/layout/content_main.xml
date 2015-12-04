@@ -16,7 +16,7 @@
         android:gravity="center_horizontal"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:id="@+id/relativeLayout"></RelativeLayout>
+        android:id="@+id/relativeLayout"/>
 
     <Button
         android:layout_width="wrap_content"
@@ -26,7 +26,6 @@
         android:layout_marginTop="28dp"
         android:layout_below="@+id/relativeLayout"
         android:layout_centerHorizontal="true"
-        android:background="@color/primary_colour"
         android:textColor="#FFFFFF"
         android:paddingLeft="10dp"
         android:paddingRight="10dp" />

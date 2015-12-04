@@ -94,7 +94,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     ProgressDialog serverDialog;
     boolean gotPosition;
     LocationManager locationManager;
-    String URL = "http://52.33.174.180:8080/Servlet/Servlet";
+    String URL = "http://52.32.13.98:8080/Servlet/Servlet";
     ArrayList<ArrayList<Double>> weightedLatLng;
     ArrayList<ArrayList<String>> listOfHouses;
     Message message;
@@ -103,7 +103,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     ArrayList<WeightedLatLng> hmapData;
     HeatmapTileProvider mHeatMapProvider;
     TileOverlay mHeatMapTileOverlay;
-    final static Float MAX_ZOOM = 16.0f;
+    final static Float zoom = 13.0f;
     boolean isServerResponded = false;
     Menu menu;
     SearchManager searchManager;
@@ -112,6 +112,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     MenuItem locationItem;
     MenuItem budgetItem;
     boolean searchAddress;
+    boolean searchBudget;
 
 
     @Override
@@ -123,6 +124,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         progressDialog.setMessage("Waiting for location");
         progressDialog.setCancelable(false);
         progressDialog.setCanceledOnTouchOutside(false);
+        progressDialog.show();
+
         serverDialog = new ProgressDialog(this);
         serverDialog.setMessage("Getting houses within 3 miles");
         serverDialog.setCancelable(false);
@@ -176,25 +179,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         handleIntent(getIntent());
     }
 
-    @Override
-    protected void onNewIntent(Intent intent) {
-        handleIntent(intent);
-    }
-
-    private void handleIntent(Intent intent) {
-
-        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
-            if(searchAddress) {
-                try {
-                    String query = intent.getStringExtra(SearchManager.QUERY);
-                    searchForAddress(query);
-                } catch (Exception e) {
-
-                }
-            }
-        }
-    }
-
     public MapsActivity getActivity() {
         return this;
     }
@@ -225,10 +209,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     gotPosition = true;
                     progressDialog.dismiss();
                     mMap.clear();
-                    mMap.moveCamera(CameraUpdateFactory.zoomTo(13));
+                    mMap.moveCamera(CameraUpdateFactory.zoomTo(zoom));
                     mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
                     mMap.addMarker(new MarkerOptions().position(pos).title("You are here")
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));//                    contactServer(longit,latid);
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                    contactServer(longit, latid, "0");
                 }
             }
 
@@ -275,18 +260,21 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             builder.show();
         } else {
             if (gotPosition) {
-                //progressDialog.show();
+                progressDialog.show();
                 gotPosition = false;
             }
         }
     }
 
-    public void contactServer(double longit, double latid) {
+    public void contactServer(double longit, double latid, String budget) {
         serverDialog.show();
         Intent i = new Intent(getActivity(), ContactServerTask.class);
         i.putExtra("longit", String.valueOf(longit));
         i.putExtra("latid", String.valueOf(latid));
         i.putExtra("URL", URL);
+        i.putExtra("budget", searchBudget);
+        i.putExtra("budget_value", budget);
+        searchBudget = false;
         getActivity().startService(i);
 
     }
@@ -345,16 +333,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    private void addHeatMap() {
+    public void addHeatMap() {
         mMap.clear();
         mHeatMapProvider = new HeatmapTileProvider.Builder().weightedData(hmapData).build();
-        mHeatMapProvider.setRadius(100);
+        mHeatMapProvider.setRadius(20);
         mHeatMapTileOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mHeatMapProvider));
         mHeatMapTileOverlay.clearTileCache();
-        addMarkers(latlngs, averagePrice, mMap);
         mMap.getUiSettings().setZoomGesturesEnabled(false);
         mMap.getUiSettings().setZoomControlsEnabled(false);
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latid, longit), MAX_ZOOM));
     }
 
     private void addMarkers(ArrayList<LatLng> dataLatLng, ArrayList<Double> avgPrice, GoogleMap mMap) {
@@ -365,21 +351,26 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     /**
-     * Searches for an inputted query using geocoder.
+     * Searches for an inputted query using the JSON API provided by Google Places. The query is from the associated searchview.
      *
      * @param query The search term inputted by the user.
      */
     public void searchForAddress(String query) {
         try {
-
-            Double[] coord = new SearchTask().execute(getString(R.string.browser_key), query).get();
-            LatLng pos = new LatLng(coord[0], coord[1]);
+            ProgressDialog userSearch = new ProgressDialog(getApplicationContext());
+            userSearch.setMessage("Finding...");
+            String[] coord = new SearchTask().execute(getString(R.string.browser_key), query).get();
+            latid = Double.parseDouble(coord[0]);
+            longit = Double.parseDouble(coord[1]);
+            LatLng pos = new LatLng(Double.parseDouble(coord[0]), Double.parseDouble(coord[1]));
+            String name = coord[2];
             mMap.clear();
-            mMap.moveCamera(CameraUpdateFactory.zoomTo(13));
+            mMap.moveCamera(CameraUpdateFactory.zoomTo(zoom));
             mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
             mMap.addMarker(new MarkerOptions().position(pos).title("Searched Location")
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
-////            contactServer(target.getLongitude(), target.getLatitude());
+            userSearch.hide();
+            contactServer(pos.longitude, pos.latitude, "0");
 
         } catch (Exception e) {
             Snackbar.make(findViewById(android.R.id.content), "Sorry, we can't find the location you're looking for... Please try again", Snackbar.LENGTH_LONG)
@@ -398,6 +389,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    /**
+     * Initialises the searchview, inserting it into the actionbar.
+     * @param menu
+     * @return
+     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -425,13 +421,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         locationSearch.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override
             public void onViewAttachedToWindow(View v) {
-                Log.v("<---", "SUP");
+
 
             }
 
             @Override
             public void onViewDetachedFromWindow(View v) {
-                Log.v("<---", "SUP");
                 getMenu().findItem(R.id.add_place).setVisible(true);
                 getMenu().findItem(R.id.search_item).setVisible(true);
             }
@@ -449,31 +444,43 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 getMenu().findItem(R.id.search_item).setVisible(true);
             }
         });
-
-
         return true;
-    }
-
-    private SearchView getLocationSearch(){
-        return locationSearch;
-    }
-
-    private SearchView getBudgetSearch(){
-        return budgetSearch;
     }
 
     private Menu getMenu(){
         return menu;
     }
 
-    private void setItemsVisibility(Menu menu, MenuItem menuItem, boolean visible) {
-        for(int i = 0; i < menu.size(); i++){
-            if(!menu.getItem(i).equals(menuItem) && !menu.getItem(i).equals(menu.findItem(R.id.search_item))){
-                menu.getItem(i).setVisible(visible);
+    @Override
+    protected void onNewIntent(Intent intent) {
+        handleIntent(intent);
+    }
+
+    private void handleIntent(Intent intent) {
+
+        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            //searches for address based on searchview's query
+            if(searchAddress) {
+                try {
+                    String query = intent.getStringExtra(SearchManager.QUERY);
+                    searchForAddress(query);
+                } catch (Exception e) {
+
+                }
+            }
+            //searches for houses values up to a certain price based on searchview's query
+            else{
+                searchBudget = true;
+                contactServer(longit,latid, intent.getStringExtra(SearchManager.QUERY));
             }
         }
     }
 
+    /**
+     * Performs a desired action based on whatever item is selected from the actionbar
+     * @param item
+     * @return
+     */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -570,8 +577,10 @@ class Receiver extends BroadcastReceiver {
                             .setActionTextColor(Color.RED)
                             .show();
                     Log.w("WE GOT OKAY", "ITS ALL GOOD");
+                    mapsActivity.addHeatMap();
                     mapsActivity.serverDialog.hide();
                 } else {
+                    mapsActivity.serverDialog.hide();
                     Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Server is not reachable", Snackbar.LENGTH_LONG)
                             .setActionTextColor(Color.RED)
                             .show();

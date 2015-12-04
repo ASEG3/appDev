@@ -78,6 +78,8 @@ public class MainActivity extends AppCompatActivity {
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.removeItem(R.id.search_item);
         menu.removeItem(R.id.add_place);
+        menu.removeItem(R.id.action_settings);
+        menu.removeItem(R.id.map_type);
         return true;
 
     }

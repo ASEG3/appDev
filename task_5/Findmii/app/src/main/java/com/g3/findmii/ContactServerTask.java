@@ -38,6 +38,10 @@ public class ContactServerTask extends IntentService{
         List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
         nameValuePairs.add(new BasicNameValuePair("latitude", intent.getStringExtra("longit")));
         nameValuePairs.add(new BasicNameValuePair("longitude", intent.getStringExtra("latid")));
+        if(intent.getBooleanExtra("budget",false))
+        {
+            nameValuePairs.add(new BasicNameValuePair("budget",intent.getStringExtra("budget_value")));
+        }
 
         // Execute HTTP Post Request
         try {

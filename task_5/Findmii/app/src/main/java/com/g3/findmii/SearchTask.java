@@ -22,18 +22,18 @@ import cz.msebera.android.httpclient.util.EntityUtils;
 /**
  * Created by matthewweller on 01/12/15.
  */
-public class SearchTask extends AsyncTask<String, Void, Double[]> {
+public class SearchTask extends AsyncTask<String, Void, String[]> {
 
 
     @Override
-    protected Double[] doInBackground(String... params) {
+    protected String[] doInBackground(String... params) {
         String mapsKey = params[0];
         String query = params[1];
         return loadJSON(query, mapsKey);
     }
 
-    public Double[] loadJSON(String query, String mapsKey){
-        Double[] coord = {Double.MIN_VALUE};
+    public String[] loadJSON(String query, String mapsKey){
+        String[] coord = {Double.toString(Double.MIN_VALUE)};
         try {
             Log.v("<---",query);
             HttpClient httpclient = HttpClientBuilder.create().build();
@@ -44,9 +44,10 @@ public class SearchTask extends AsyncTask<String, Void, Double[]> {
             HttpResponse response = httpclient.execute(httpget);
             HttpEntity entity = response.getEntity();
             JSONObject jsonObject = new JSONObject(EntityUtils.toString(entity));
-            double lat = jsonObject.getJSONArray("results").getJSONObject(0).getJSONObject("geometry").getJSONObject("location").getDouble("lat");
-            double lng = jsonObject.getJSONArray("results").getJSONObject(0).getJSONObject("geometry").getJSONObject("location").getDouble("lng");
-            coord = new Double[]{lat,lng};
+            String lat = Double.toString(jsonObject.getJSONArray("results").getJSONObject(0).getJSONObject("geometry").getJSONObject("location").getDouble("lat"));
+            String lng = Double.toString(jsonObject.getJSONArray("results").getJSONObject(0).getJSONObject("geometry").getJSONObject("location").getDouble("lng"));
+            String name = jsonObject.getJSONArray("results").getJSONObject(0).getString("formatted_address");
+            coord = new String[]{lat,lng,name};
         }
         catch (Exception e){
 
