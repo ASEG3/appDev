@@ -40,6 +40,7 @@ import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.text.InputType;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -50,6 +51,9 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.NumberPicker;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -94,7 +98,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     ProgressDialog serverDialog;
     boolean gotPosition;
     LocationManager locationManager;
-    String URL = "http://52.32.13.98:8080/Servlet/Servlet";
+    String URL = "http://52.10.109.23:8080/Servlet/Servlet";
     ArrayList<ArrayList<Double>> weightedLatLng;
     ArrayList<ArrayList<String>> listOfHouses;
     Message message;
@@ -113,12 +117,20 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     MenuItem budgetItem;
     boolean searchAddress;
     boolean searchBudget;
+    boolean showColourBar = false;
+    TextView leastExpensive;
+    TextView mostExpensive;
+    TextView colorBar;
+    boolean comparison;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        gotPosition = false;
+        comparison = false;
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Waiting for location");
@@ -172,10 +184,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     Snackbar.make(findViewById(android.R.id.content), "Sorry, server is not reachable!", Snackbar.LENGTH_LONG)
                             .setActionTextColor(Color.RED)
                             .show();
-                }            }
+                }
+            }
         });
 
-        gotPosition = false;
+        leastExpensive = (TextView) findViewById(R.id.least_expensive);
+        mostExpensive = (TextView) findViewById(R.id.most_expensive);
+        colorBar = (TextView) findViewById(R.id.bar);
+
         handleIntent(getIntent());
     }
 
@@ -203,17 +219,15 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Define a listener that responds to location updates
         LocationListener locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
-                setLongAndLat(location);
                 if (!gotPosition) {
+                    setLongAndLat(location);
                     LatLng pos = new LatLng(latid, longit);
                     gotPosition = true;
                     progressDialog.dismiss();
                     mMap.clear();
                     mMap.moveCamera(CameraUpdateFactory.zoomTo(zoom));
                     mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
-                    mMap.addMarker(new MarkerOptions().position(pos).title("You are here")
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
-                    contactServer(longit, latid, "0");
+                    contactServer(longit, latid, "N/A", "N/A", "N/A");
                 }
             }
 
@@ -266,17 +280,33 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    public void contactServer(double longit, double latid, String budget) {
+    public void contactServer(double longit, double latid, String budget, String year, String propertyType) {
         serverDialog.show();
         Intent i = new Intent(getActivity(), ContactServerTask.class);
         i.putExtra("longit", String.valueOf(longit));
         i.putExtra("latid", String.valueOf(latid));
         i.putExtra("URL", URL);
-        i.putExtra("budget", searchBudget);
-        i.putExtra("budget_value", budget);
-        searchBudget = false;
+        if (searchBudget) {
+            i.putExtra("budget_value", budget);
+        } else {
+            i.putExtra("budget_value", "N/A");
+        }
+        if (!year.equals("N/A")) {
+            i.putExtra("specific_year", year);
+        } else {
+            i.putExtra("specific_year", "N/A");
+        }
+        if (!propertyType.equals("N/A")) {
+            if (propertyType.equals("house")) {
+                i.putExtra("property_type", "housesOnly");
+            } else {
+                i.putExtra("property_type", "flatsOnly");
+            }
+        } else {
+            i.putExtra("property_type", "N/A");
+        }
         getActivity().startService(i);
-
+        searchBudget = false;
     }
 
     public void houseList() {
@@ -340,6 +370,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mHeatMapTileOverlay.clearTileCache();
         mMap.getUiSettings().setZoomGesturesEnabled(false);
         mMap.getUiSettings().setZoomControlsEnabled(false);
+        mMap.addMarker(new MarkerOptions().position(new LatLng(latid, longit)).title("You are here").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
     }
 
     private void addMarkers(ArrayList<LatLng> dataLatLng, ArrayList<Double> avgPrice, GoogleMap mMap) {
@@ -361,21 +392,48 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             String[] coord = new SearchTask().execute(getString(R.string.browser_key), query).get();
             latid = Double.parseDouble(coord[0]);
             longit = Double.parseDouble(coord[1]);
-            LatLng pos = new LatLng(Double.parseDouble(coord[0]), Double.parseDouble(coord[1]));
+            LatLng pos = new LatLng(latid, longit);
             String name = coord[2];
             mMap.clear();
             mMap.moveCamera(CameraUpdateFactory.zoomTo(zoom));
             mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
-            mMap.addMarker(new MarkerOptions().position(pos).title("Searched Location")
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
             userSearch.hide();
-            contactServer(pos.longitude, pos.latitude, "0");
+            contactServer(pos.longitude, pos.latitude, "N/A", "N/A", "N/A");
 
         } catch (Exception e) {
             Snackbar.make(findViewById(android.R.id.content), "Sorry, we can't find the location you're looking for... Please try again", Snackbar.LENGTH_LONG)
                     .setActionTextColor(Color.RED)
                     .show();
         }
+    }
+
+    public void compareLocations(String queryOne, String queryTwo) {
+        try {
+            String[] addressOne = new SearchTask().execute(getString(R.string.browser_key), queryOne).get();
+            String[] addressTwo = new SearchTask().execute(getString(R.string.browser_key), queryTwo).get();
+
+            byte[] locationOne = new ServerTask().execute(URL, addressOne[0], addressOne[1], "N/A", "N/A", "N/A").get();
+            byte[] locationTwo = new ServerTask().execute(URL, addressTwo[0], addressTwo[1], "N/A", "N/A", "N/A").get();
+
+            ByteArrayInputStream inOne = new ByteArrayInputStream(locationOne);
+            ByteArrayInputStream inTwo = new ByteArrayInputStream(locationTwo);
+
+            ObjectInputStream isOne = new ObjectInputStream(inOne);
+            ObjectInputStream isTwo = new ObjectInputStream(inTwo);
+
+            Message messageOne = (Message) isOne.readObject();
+            Message messageTwo = (Message) isTwo.readObject();
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(getApplicationContext());
+            builder.setMessage("Got it");
+            builder.create().show();
+
+        } catch (Exception e) {
+            Snackbar.make(findViewById(android.R.id.content), "Sorry, we can't find the location(s) you're trying to compare... Please try again", Snackbar.LENGTH_LONG)
+                    .setActionTextColor(Color.RED)
+                    .show();
+        }
+
     }
 
     @Override
@@ -390,6 +448,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     /**
      * Initialises the searchview, inserting it into the actionbar.
+     *
      * @param menu
      * @return
      */
@@ -446,7 +505,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         return true;
     }
 
-    private Menu getMenu(){
+    private Menu getMenu() {
         return menu;
     }
 
@@ -459,7 +518,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             //searches for address based on searchview's query
-            if(searchAddress) {
+            if (searchAddress) {
                 try {
                     String query = intent.getStringExtra(SearchManager.QUERY);
                     searchForAddress(query);
@@ -468,15 +527,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             }
             //searches for houses values up to a certain price based on searchview's query
-            else{
+            else {
                 searchBudget = true;
-                contactServer(longit,latid, intent.getStringExtra(SearchManager.QUERY));
+                contactServer(longit, latid, intent.getStringExtra(SearchManager.QUERY), "N/A", "N/A");
             }
         }
     }
 
     /**
      * Performs a desired action based on whatever item is selected from the actionbar
+     *
      * @param item
      * @return
      */
@@ -488,7 +548,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.about_us) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setView(R.layout.about_team_layout);
+            builder.setTitle("About Us");
+            builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.cancel();
+                }
+            });
+            builder.create().show();
             return true;
         }
 
@@ -525,17 +595,109 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             return true;
         }
 
-        if(id == R.id.location_search){
+        if (id == R.id.location_search) {
             searchAddress = true;
             getMenu().findItem(R.id.add_place).setVisible(false);
             getMenu().findItem(R.id.search_item).setVisible(false);
             return true;
         }
 
-        if(id == R.id.budget_search){
+        if (id == R.id.budget_search) {
             searchAddress = false;
             getMenu().findItem(R.id.add_place).setVisible(false);
             getMenu().findItem(R.id.search_item).setVisible(false);
+            return true;
+        }
+
+        if (id == R.id.year) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setTitle("Select A Year...");
+            builder.setCancelable(false);
+            final NumberPicker picker = new NumberPicker(getActivity());
+            picker.setMinValue(1995);
+            picker.setMaxValue(2015);
+            FrameLayout parent = new FrameLayout(getApplicationContext());
+            parent.addView(picker, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.CENTER));
+            builder.setView(parent);
+            builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    contactServer(longit, latid, "N/A", "" + picker.getValue(), "N/A");
+                }
+            });
+            builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.cancel();
+                }
+            });
+            builder.show();
+            return true;
+        }
+
+        if (id == R.id.colour_bar_toggle) {
+            if (showColourBar) {
+                colorBar.setVisibility(View.INVISIBLE);
+                mostExpensive.setVisibility(View.INVISIBLE);
+                leastExpensive.setVisibility(View.INVISIBLE);
+                showColourBar = false;
+            } else if (!showColourBar) {
+                colorBar.setVisibility(View.VISIBLE);
+                mostExpensive.setVisibility(View.VISIBLE);
+                leastExpensive.setVisibility(View.VISIBLE);
+                showColourBar = true;
+            }
+            return true;
+        }
+
+        if (id == R.id.house_toggle) {
+            contactServer(longit, latid, "N/A", "N/A", "house");
+            return true;
+        }
+
+        if (id == R.id.flat_toggle) {
+            contactServer(longit, latid, "N/A", "N/A", "flat");
+            return true;
+        }
+
+        if (id == R.id.all_property_toggle) {
+            contactServer(longit, latid, "N/A", "N/A", "N/A");
+            return true;
+        }
+
+        if(id == R.id.comparison){
+            AlertDialog.Builder alertDialog = new AlertDialog.Builder(getActivity());
+            alertDialog.setTitle("Compare Locations...");
+            alertDialog.setMessage("Enter two locations in oder to compare them both against each other");
+
+
+            final EditText textOne = new EditText(getApplicationContext());
+            final EditText textTwo = new EditText(getApplicationContext());
+
+            LinearLayout ll=new LinearLayout(this);
+            ll.setOrientation(LinearLayout.VERTICAL);
+            ll.addView(textOne);
+            ll.addView(textTwo);
+            alertDialog.setView(ll);
+
+            alertDialog.setPositiveButton("Compare", new DialogInterface.OnClickListener() {
+
+                public void onClick(DialogInterface dialog, int id) {
+                    compareLocations(textOne.getText().toString(), textTwo.getText().toString());
+                }
+            });
+            alertDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.cancel();
+                }
+            });
+
+            AlertDialog alert = alertDialog.create();
+            alert.show();
+
             return true;
         }
 
@@ -562,29 +724,33 @@ class Receiver extends BroadcastReceiver {
             ByteArrayInputStream in = new ByteArrayInputStream(container);
             try {
                 ObjectInputStream is = new ObjectInputStream(in);
-                mapsActivity.message = (Message) is.readObject();
-                if (mapsActivity.message.getSizeOfWeighted() > 0) {
-                    mapsActivity.weightedLatLng = mapsActivity.message.getHouse();
-                    mapsActivity.listOfHouses = mapsActivity.message.getHouses();
-                    mapsActivity.serverDialog.hide();
+                    mapsActivity.message = (Message) is.readObject();
+                    if (mapsActivity.message.getSizeOfWeighted() > 0) {
+                        mapsActivity.weightedLatLng = mapsActivity.message.getHouse();
+                        mapsActivity.listOfHouses = mapsActivity.message.getHouses();
+                        mapsActivity.serverDialog.hide();
 
-                    //set heatmap data
-                    mapsActivity.setDataFromServer(mapsActivity.weightedLatLng);
-                    mapsActivity.setHeatmapData(mapsActivity.latlngs, mapsActivity.weights);
-                    mapsActivity.isServerResponded = true;
-                    Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Generated Heatmap", Snackbar.LENGTH_LONG)
-                            .setActionTextColor(Color.RED)
-                            .show();
-                    Log.w("WE GOT OKAY", "ITS ALL GOOD");
-                    mapsActivity.addHeatMap();
-                    mapsActivity.serverDialog.hide();
-                } else {
-                    mapsActivity.serverDialog.hide();
-                    Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Server is not reachable", Snackbar.LENGTH_LONG)
-                            .setActionTextColor(Color.RED)
-                            .show();
-                    Log.i("EMPTY_RESPONSE", "Server returned empty data, most likely, database issue");
-                }
+                        mapsActivity.mostExpensive.setText("£" + mapsActivity.message.getMostExpensive());
+                        mapsActivity.leastExpensive.setText("£" + mapsActivity.message.getLeastExpensive());
+
+                        //set heatmap data
+                        mapsActivity.setDataFromServer(mapsActivity.weightedLatLng);
+                        mapsActivity.setHeatmapData(mapsActivity.latlngs, mapsActivity.weights);
+                        mapsActivity.isServerResponded = true;
+                        Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Generated Heatmap", Snackbar.LENGTH_LONG)
+                                .setActionTextColor(Color.RED)
+                                .show();
+                        Log.w("WE GOT OKAY", "ITS ALL GOOD");
+                        mapsActivity.addHeatMap();
+                        mapsActivity.serverDialog.hide();
+                    } else {
+                        mapsActivity.serverDialog.hide();
+                        Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Server is not reachable", Snackbar.LENGTH_LONG)
+                                .setActionTextColor(Color.RED)
+                                .show();
+                        Log.i("EMPTY_RESPONSE", "Server returned empty data, most likely, database issue");
+                    }
+
             } catch (Exception e) {
                 mapsActivity.serverDialog.hide();
                 Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Unable to generate Heatmap", Snackbar.LENGTH_LONG)

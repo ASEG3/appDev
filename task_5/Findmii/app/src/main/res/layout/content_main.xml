@@ -26,6 +26,7 @@
         android:layout_marginTop="28dp"
         android:layout_below="@+id/relativeLayout"
         android:layout_centerHorizontal="true"
+        android:background="@color/colorPrimary"
         android:textColor="#FFFFFF"
         android:paddingLeft="10dp"
         android:paddingRight="10dp" />

@@ -1,21 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#08bd93</color>
-    <color name="colorPrimaryDark">#0a6e57</color>
-    <color name="colorAccent">#ff4081</color>
-
-    <!--<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle" >-->
-
-        <!--<gradient-->
-            <!--android:angle="90"-->
-            <!--android:centerColor="#555994"-->
-            <!--android:endColor="#b5b6d2"-->
-            <!--android:startColor="#555994"-->
-            <!--android:type="linear" />-->
-
-        <!--<corners-->
-            <!--android:radius="0dp"/>-->
-
-    <!--</shape>-->
-
+    <color name="colorPrimary">#307CD4</color>
+    <color name="colorPrimaryDark">#1a487e</color>
+    <color name="colorAccent">#307cd4</color>
 </resources>

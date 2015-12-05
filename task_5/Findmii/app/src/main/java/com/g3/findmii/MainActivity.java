@@ -1,9 +1,15 @@
 package com.g3.findmii;
 
+import android.app.Activity;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.location.LocationManager;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.app.AlertDialog;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -17,10 +23,19 @@ import android.widget.Button;
 
 public class MainActivity extends AppCompatActivity {
 
+    LocationManager lm;
+    boolean gps_enabled;
+    boolean network_enabled;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        gps_enabled = false;
+        network_enabled = false;
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -28,7 +43,30 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(new Intent(getApplicationContext(), MapsActivity.class));
+                if(!lm.isProviderEnabled(LocationManager.GPS_PROVIDER) &&
+                        !lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+                    builder.setTitle("Location Settings Are Disabled");
+                    builder.setMessage("Please enable your location within your phone's settings");
+                    builder.setPositiveButton("Settings...", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            Intent myIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                            startActivity(myIntent);
+                        }
+                    });
+                    builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.cancel();
+                        }
+                    });
+                    AlertDialog dialog = builder.create();
+                    dialog.show();
+                }
+                else {
+                    startActivity(new Intent(getApplicationContext(), MapsActivity.class));
+                }
             }
         });
 
@@ -66,21 +104,20 @@ public class MainActivity extends AppCompatActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
 
         return super.onOptionsItemSelected(item);
     }
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        menu.removeItem(R.id.search_item);
-        menu.removeItem(R.id.add_place);
-        menu.removeItem(R.id.action_settings);
-        menu.removeItem(R.id.map_type);
+        for (int i = 0; i < menu.size(); i++){
+            menu.getItem(i).setVisible(false);
+        }
         return true;
 
+    }
+
+    public Activity getActivity(){
+        return this;
     }
 }
