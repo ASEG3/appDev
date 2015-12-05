@@ -20,7 +20,7 @@
     <string name="search_view">Search for a place…</string>
     <string name="openDrawer">Drawer Open</string>
     <string name="closeDrawer">Drawer Closed</string>
-    <string name="browser_key">AIzaSyD6TCdfbiAlVGsRd38szg1Y3YUZwTGvO2M</string>
+    <string name="browser_key">AIzaSyDSe-SpmbAIaFXI8UKdmP37MoF9j3I1Rq8</string>
     <string-array name="view_list">
         <item>Road Map</item>
         <item>Satellite</item>
@@ -30,4 +30,5 @@
     </string-array>
     <string name="title_activity_main2">Main2Activity</string>
     <string name="title_activity_house_list">HouseList</string>
+    <string name="favLocation">My Favourite Locations</string>
 </resources>

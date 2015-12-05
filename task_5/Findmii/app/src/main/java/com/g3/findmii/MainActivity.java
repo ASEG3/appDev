@@ -14,8 +14,13 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
+import android.widget.Toast;
+
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
+
+    ArrayList<ArrayList<String>> favList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,7 +44,18 @@ public class MainActivity extends AppCompatActivity {
         toggle.syncState();
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(new NavigationListener());
+        //navigationView.setNavigationItemSelectedListener(new NavigationListener());
+        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(MenuItem menuItem) {
+                int id = menuItem.getItemId();
+                if (id == R.id.nav_fav) {
+                    showFavs();
+                }
+                return true;
+            }
+        });
+
     }
 
     @Override
@@ -82,5 +98,28 @@ public class MainActivity extends AppCompatActivity {
         menu.removeItem(R.id.map_type);
         return true;
 
+    }
+    public void showFavs(){
+        MapsActivity favs = new MapsActivity();
+        if(!favs.isFavourite(MainActivity.this, null)){
+            Toast.makeText(MainActivity.this, "You have not added any Favourites", Toast.LENGTH_LONG).show();
+        }else{
+            displayFavouriteList(favs);
+        }
+    }
+    public void displayFavouriteList(MapsActivity favs){
+        favList = new ArrayList<>();
+        favList = favs.getFavourites(MainActivity.this);
+
+        Intent i = new Intent(MainActivity.this, FavouriteList.class);
+        ArrayList<String> values = new ArrayList<>();
+        for(ArrayList<String> current : favList){
+            String tmp = current.get(3) + "\n" + current.get(2)
+                    + "\n" + current.get(4); //+ "\n" + current.get(0) + ", " + current.get(1)
+            values.add(tmp);
+        }
+        String[] favValues = values.toArray(new String[values.size()]);
+        i.putExtra("favouritelist", favValues);
+        MainActivity.this.startActivity(i);
     }
 }

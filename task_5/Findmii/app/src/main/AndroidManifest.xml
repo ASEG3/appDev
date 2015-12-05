@@ -55,6 +55,8 @@
             android:label="@string/title_activity_house_list"
             android:theme="@style/AppTheme.NoActionBar" >
         </activity>
+        <activity android:name=".FavouriteList" >
+        </activity>
         <service
             android:name=".ContactServerTask"
             android:exported="false"/>
