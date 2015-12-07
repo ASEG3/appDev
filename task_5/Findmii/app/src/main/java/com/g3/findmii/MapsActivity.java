@@ -85,6 +85,7 @@ import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 import cz.msebera.android.httpclient.HttpEntity;
 import cz.msebera.android.httpclient.HttpResponse;
@@ -777,11 +778,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         Double lat = marker.getPosition().latitude;
                         Double longit = marker.getPosition().longitude;
                         String postcode = getPostCode(marker.getPosition().latitude, marker.getPosition().longitude);
-
-                        //Double.toString(lat)+","+Double.toString(longit)
-                        try {
-                            String[] coord = new SearchTask().execute(getString(R.string.browser_key), postcode).get();
-                            String address = coord[2];
+                        String address = getAddress(lat,longit);
 
                            if (isFavourite(getActivity(), postcode)) {
                                 Toast.makeText(getActivity(), "Already a Favourite!", Toast.LENGTH_LONG).show();
@@ -793,12 +790,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     Toast.makeText(getActivity(), "Sorry, could not add to favourites", Toast.LENGTH_LONG).show();
                                 }
                             }
-                        }catch (Exception e){
-                            Log.e("ADDR",e.getMessage());
-                            Toast.makeText(getActivity(), "Something went wrong", Toast.LENGTH_LONG).show();
-                        }
-
-                        //;
                     }
                 });
 
@@ -914,6 +905,23 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             Log.e("Geocoder", e.getMessage());
         }
         return null;
+    }
+    public String getAddress(double latitude, double longitude) {
+        StringBuilder address = new StringBuilder();
+        try {
+            Geocoder geocoder = new Geocoder(getApplicationContext(), Locale.getDefault());
+            List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 2);
+            if (addresses.size() > 0) {
+                for (int i = 0; i<addresses.size(); i++) {
+                    Address addr = addresses.get(i);
+                    address.append(addr.getAddressLine(i));
+                    address.append(", ");
+                }
+            }
+        } catch (IOException e) {
+            Log.e("Geocoder", e.getMessage());
+        }
+        return address.toString();
     }
 }
 
