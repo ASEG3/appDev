@@ -42,6 +42,7 @@ import android.text.InputType;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -50,10 +51,13 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.NumberPicker;
+import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -122,7 +126,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     TextView mostExpensive;
     TextView colorBar;
     boolean comparison;
-
+    String propertyType = "N/A";
+    int selectedPropertyType = 0;
+    String desiredYear = "N/A";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -227,7 +233,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     mMap.clear();
                     mMap.moveCamera(CameraUpdateFactory.zoomTo(zoom));
                     mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
-                    contactServer(longit, latid, "N/A", "N/A", "N/A");
+                    contactServer(longit, latid, "N/A", desiredYear, propertyType);
                 }
             }
 
@@ -330,6 +336,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
     /*
+
      Sets the weighted data (latitude and longitude and average price from the server)
      Converts received lat, long into LatLng type
     */
@@ -398,7 +405,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             mMap.moveCamera(CameraUpdateFactory.zoomTo(zoom));
             mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
             userSearch.hide();
-            contactServer(pos.longitude, pos.latitude, "N/A", "N/A", "N/A");
+            contactServer(pos.longitude, pos.latitude, "N/A", desiredYear, propertyType);
 
         } catch (Exception e) {
             Snackbar.make(findViewById(android.R.id.content), "Sorry, we can't find the location you're looking for... Please try again", Snackbar.LENGTH_LONG)
@@ -529,7 +536,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             //searches for houses values up to a certain price based on searchview's query
             else {
                 searchBudget = true;
-                contactServer(longit, latid, intent.getStringExtra(SearchManager.QUERY), "N/A", "N/A");
+                contactServer(longit, latid, intent.getStringExtra(SearchManager.QUERY), desiredYear, propertyType);
             }
         }
     }
@@ -549,8 +556,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.about_us) {
+            FrameLayout inflatedView = (FrameLayout) getLayoutInflater().inflate(R.layout.about_team_layout, null);
+
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-            builder.setView(R.layout.about_team_layout);
+            builder.setView(inflatedView);
             builder.setTitle("About Us");
             builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                 @Override
@@ -610,21 +619,38 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         if (id == R.id.year) {
+            LinearLayout inflatedView = (LinearLayout) getLayoutInflater().inflate(R.layout.year_picker_layout, null);
+
             final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
             builder.setTitle("Select A Year...");
             builder.setCancelable(false);
-            final NumberPicker picker = new NumberPicker(getActivity());
+
+            final NumberPicker picker = (NumberPicker) inflatedView.findViewById(R.id.picker);
             picker.setMinValue(1995);
             picker.setMaxValue(2015);
-            FrameLayout parent = new FrameLayout(getApplicationContext());
-            parent.addView(picker, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,
-                    FrameLayout.LayoutParams.WRAP_CONTENT,
-                    Gravity.CENTER));
-            builder.setView(parent);
+            picker.setValue(1998);
+
+            final CheckBox checkBox = (CheckBox) inflatedView.findViewById(R.id.all_years);
+            checkBox.setText("Show results for all years");
+            checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    if (isChecked) {
+                        Log.v("<---", "changed");
+                        desiredYear = "N/A";
+                    }
+                }
+            });
+
+            builder.setView(inflatedView);
+
             builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    contactServer(longit, latid, "N/A", "" + picker.getValue(), "N/A");
+                    if(!checkBox.isChecked()) {
+                        desiredYear = ""+picker.getValue();
+                    }
+                    contactServer(longit, latid, "N/A", desiredYear, propertyType);
                 }
             });
             builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -652,19 +678,35 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             return true;
         }
 
-        if (id == R.id.house_toggle) {
-            contactServer(longit, latid, "N/A", "N/A", "house");
-            return true;
-        }
-
-        if (id == R.id.flat_toggle) {
-            contactServer(longit, latid, "N/A", "N/A", "flat");
-            return true;
-        }
-
-        if (id == R.id.all_property_toggle) {
-            contactServer(longit, latid, "N/A", "N/A", "N/A");
-            return true;
+        if (id == R.id.property_preferences) {
+            final CharSequence[] options = {"All Property", "Houses", "Flats"};
+            final String[] flags = {"N/A", "house", "flat"};
+            final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            final int tmp = selectedPropertyType;
+            builder.setCancelable(false);
+            builder.setTitle("Select Property Type");
+            builder.setSingleChoiceItems(options, selectedPropertyType, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    Log.v("<---",""+which);
+                    selectedPropertyType = which;
+                }
+            });
+            builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    propertyType = flags[selectedPropertyType];
+                    contactServer(longit, latid, "N/A", desiredYear, propertyType);
+                }
+            });
+            builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    selectedPropertyType = tmp;
+                    dialog.cancel();
+                }
+            });
+            builder.show();
         }
 
         if(id == R.id.comparison){
