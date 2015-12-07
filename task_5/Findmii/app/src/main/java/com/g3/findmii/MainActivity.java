@@ -1,9 +1,15 @@
 package com.g3.findmii;
 
+import android.app.Activity;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.location.LocationManager;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.app.AlertDialog;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -21,11 +27,20 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
 
     ArrayList<ArrayList<String>> favList;
+    LocationManager lm;
+    boolean gps_enabled;
+    boolean network_enabled;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        gps_enabled = false;
+        network_enabled = false;
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -33,7 +48,30 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(new Intent(getApplicationContext(), MapsActivity.class));
+                if(!lm.isProviderEnabled(LocationManager.GPS_PROVIDER) &&
+                        !lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+                    builder.setTitle("Location Settings Are Disabled");
+                    builder.setMessage("Please enable your location within your phone's settings");
+                    builder.setPositiveButton("Settings...", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            Intent myIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                            startActivity(myIntent);
+                        }
+                    });
+                    builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.cancel();
+                        }
+                    });
+                    AlertDialog dialog = builder.create();
+                    dialog.show();
+                }
+                else {
+                    startActivity(new Intent(getApplicationContext(), MapsActivity.class));
+                }
             }
         });
 
@@ -50,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
             public boolean onNavigationItemSelected(MenuItem menuItem) {
                 int id = menuItem.getItemId();
                 if (id == R.id.nav_fav) {
-                    showFavs();
+                    showFavs(getActivity());
                 }
                 return true;
             }
@@ -82,44 +120,45 @@ public class MainActivity extends AppCompatActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
 
         return super.onOptionsItemSelected(item);
     }
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        menu.removeItem(R.id.search_item);
-        menu.removeItem(R.id.add_place);
-        menu.removeItem(R.id.action_settings);
-        menu.removeItem(R.id.map_type);
+        for (int i = 0; i < menu.size(); i++){
+            menu.getItem(i).setVisible(false);
+        }
         return true;
 
     }
-    public void showFavs(){
+
+    public void showFavs(Context c){
         MapsActivity favs = new MapsActivity();
-        if(!favs.isFavourite(MainActivity.this, null)){
+        if(!favs.isFavourite(c, null)){
             Toast.makeText(MainActivity.this, "You have not added any Favourites", Toast.LENGTH_LONG).show();
         }else{
-            displayFavouriteList(favs);
+            displayFavouriteList(favs, c);
         }
     }
-    public void displayFavouriteList(MapsActivity favs){
+    public void displayFavouriteList(MapsActivity favs, Context c) {
         favList = new ArrayList<>();
-        favList = favs.getFavourites(MainActivity.this);
+        favList = favs.getFavourites(c);
 
-        Intent i = new Intent(MainActivity.this, FavouriteList.class);
+        Intent i = new Intent(c, FavouriteList.class);
         ArrayList<String> values = new ArrayList<>();
-        for(ArrayList<String> current : favList){
+        for (ArrayList<String> current : favList) {
             String tmp = current.get(3) + "\n" + current.get(2)
                     + "\n" + current.get(4); //+ "\n" + current.get(0) + ", " + current.get(1)
             values.add(tmp);
         }
         String[] favValues = values.toArray(new String[values.size()]);
         i.putExtra("favouritelist", favValues);
-        MainActivity.this.startActivity(i);
+        c.startActivity(i);
+
+    }
+
+    public Activity getActivity(){
+        return this;
     }
 }

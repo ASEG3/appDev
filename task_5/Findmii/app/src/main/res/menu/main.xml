@@ -3,15 +3,51 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".MainActivity">
     <item
-        android:id="@+id/action_settings"
+        android:id="@+id/about_us"
         android:orderInCategory="100"
-        android:title="@string/action_settings"
+        android:title="About Us"
         app:showAsAction="never" />
     <item
         android:id="@+id/map_type"
-        android:orderInCategory="100"
+        android:orderInCategory="1"
         android:title="Map Type"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/year"
+        android:orderInCategory="2"
+        android:title="Refine Year"
+        app:showAsAction="never"
+        />
+    <item
+        android:id="@+id/house_toggle"
+        android:orderInCategory="3"
+        android:title="Show Houses"
+        app:showAsAction="never"
+        />
+    <item
+        android:id="@+id/flat_toggle"
+        android:orderInCategory="4"
+        android:title="Show Flats"
+        app:showAsAction="never"
+        />
+    <item
+        android:id="@+id/all_property_toggle"
+        android:orderInCategory="5"
+        android:title="Show All Property"
+        app:showAsAction="never"
+        />
+    <item
+        android:id="@+id/comparison"
+        android:orderInCategory="6"
+        android:title="Compare Locations"
+        app:showAsAction="never"
+        />
+    <item
+        android:id="@+id/colour_bar_toggle"
+        android:orderInCategory="7"
+        android:title="Toggle Legend"
+        app:showAsAction="never"
+        />
     <item
         android:id="@+id/add_place"
         android:icon="@drawable/favourite"

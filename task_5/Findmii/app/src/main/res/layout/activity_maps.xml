@@ -41,6 +41,41 @@
         android:layout_height="match_parent"
         tools:context="com.g3.findmii.MapsActivity" />
 
+        <TextView
+            android:layout_width="5dp"
+            android:layout_height="240dp"
+            android:id="@+id/bar"
+            android:layout_centerVertical="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            android:background="@drawable/color_bar"
+            android:layout_marginRight="7dp"
+            android:visibility="invisible" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="Small Text"
+            android:id="@+id/most_expensive"
+            android:layout_alignTop="@+id/bar"
+            android:layout_toLeftOf="@+id/bar"
+            android:layout_toStartOf="@+id/bar"
+            android:layout_marginRight="10dp"
+            android:visibility="invisible" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="Small Text"
+            android:id="@+id/least_expensive"
+            android:layout_alignBottom="@+id/bar"
+            android:layout_alignRight="@+id/bar"
+            android:layout_alignEnd="@+id/bar"
+            android:layout_marginRight="10dp"
+            android:visibility="invisible" />
+
         <!--<Edit-->
     <!--android:layout_width="wrap_content"-->
     <!--android:layout_height="39dp"-->
@@ -64,11 +99,6 @@
         android:layout_width="wrap_content" android:layout_height="wrap_content"
         android:layout_gravity="left|bottom" android:layout_margin="@dimen/fab_margin"
         android:src="@android:drawable/ic_menu_mylocation" />
-
-        <android.support.design.widget.FloatingActionButton android:id="@+id/house_flat_toggle"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:layout_gravity="center|bottom" android:layout_margin="@dimen/fab_margin"
-            android:src="@drawable/house_flat" />
 
         <android.support.design.widget.FloatingActionButton android:id="@+id/house_button"
             android:layout_width="wrap_content" android:layout_height="wrap_content"

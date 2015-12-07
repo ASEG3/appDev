@@ -33,7 +33,7 @@ public class SearchTask extends AsyncTask<String, Void, String[]> {
     }
 
     public String[] loadJSON(String query, String mapsKey){
-        //String[] coord = null;
+        String[] coord = {Double.toString(Double.MIN_VALUE)};
         try {
             Log.v("<---",query);
             HttpClient httpclient = HttpClientBuilder.create().build();
@@ -47,12 +47,11 @@ public class SearchTask extends AsyncTask<String, Void, String[]> {
             String lat = Double.toString(jsonObject.getJSONArray("results").getJSONObject(0).getJSONObject("geometry").getJSONObject("location").getDouble("lat"));
             String lng = Double.toString(jsonObject.getJSONArray("results").getJSONObject(0).getJSONObject("geometry").getJSONObject("location").getDouble("lng"));
             String name = jsonObject.getJSONArray("results").getJSONObject(0).getString("formatted_address");
-            String[] coord = new String[]{lat,lng,name};
-            return coord;
+            coord = new String[]{lat,lng,name};
         }
         catch (Exception e){
-            Log.e("SEARCH_TASK",e.getMessage());
+
         }
-        return null;
+        return coord;
     }
 }
