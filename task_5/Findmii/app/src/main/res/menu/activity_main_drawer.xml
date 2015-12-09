@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
-
-    <item android:title="Favourites">
+    <item android:title="Favourites" android:icon="@android:drawable/ic_menu_myplaces" android:id="@+id/favs">
         <menu>
             <!-- <item android:id="@+id/nav_share" android:icon="@android:drawable/ic_menu_share"
                  android:title="F" />-->
-            <item android:id="@+id/nav_fav" android:icon="@android:drawable/ic_menu_myplaces"
-                android:title="Favourites" />
+           <!-- <item android:id="@+id/nav_fav" android:icon="@android:drawable/ic_menu_myplaces"
+                android:title="Favs" />-->
         </menu>
     </item>
 

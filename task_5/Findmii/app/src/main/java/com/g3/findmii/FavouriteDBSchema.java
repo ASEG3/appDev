@@ -13,6 +13,7 @@ public class FavouriteDBSchema {
         /* Inner class that defines the table contents */
         public static abstract class FavouriteSchema implements BaseColumns {
             public static final String TABLE_NAME = "favourite";
+            public static final String COLUMN_NAME_ID ="id";
             public static final String COLUMN_NAME_LATITUDE = "latitude";
             public static final String COLUMN_NAME_LONGITUDE = "longitude";
             public static final String COLUMN_NAME_POSTCODE = "postcode";

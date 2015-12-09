@@ -1,14 +1,10 @@
 package com.g3.findmii;
 
-import android.app.Activity;
-import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -24,46 +20,28 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.provider.Settings;
-import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
-import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.GravityCompat;
-import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
-import android.text.InputType;
 import android.util.Log;
-import android.view.Gravity;
-import android.view.KeyEvent;
-import android.view.LayoutInflater;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.NumberPicker;
-import android.widget.RelativeLayout;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -81,26 +59,13 @@ import com.google.android.gms.maps.model.TileOverlayOptions;
 import com.google.maps.android.heatmaps.HeatmapTileProvider;
 import com.google.maps.android.heatmaps.WeightedLatLng;
 
-import org.json.JSONObject;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-import cz.msebera.android.httpclient.HttpEntity;
-import cz.msebera.android.httpclient.HttpResponse;
-import cz.msebera.android.httpclient.NameValuePair;
-import cz.msebera.android.httpclient.client.HttpClient;
-import cz.msebera.android.httpclient.client.cache.Resource;
-import cz.msebera.android.httpclient.client.methods.HttpGet;
-import cz.msebera.android.httpclient.client.utils.URLEncodedUtils;
-import cz.msebera.android.httpclient.impl.client.HttpClientBuilder;
-import cz.msebera.android.httpclient.message.BasicNameValuePair;
-import cz.msebera.android.httpclient.util.EntityUtils;
 import messageUtils.Message;
 
 
@@ -112,7 +77,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     ProgressDialog serverDialog;
     boolean gotPosition;
     LocationManager locationManager;
-    String URL = "http://52.10.109.23:8080/Servlet/Servlet";
+    String URL = "http://52.35.222.167:8080/Servlet/Servlet";
     ArrayList<ArrayList<Double>> weightedLatLng;
     ArrayList<ArrayList<String>> listOfHouses;
     Message message;
@@ -141,6 +106,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     String propertyType = "N/A";
     int selectedPropertyType = 0;
     String desiredYear = "N/A";
+    final int favaourite_max = 10;
+    LatLng favPosisiton;
+    boolean favIntent=false;
+    NavigationView navigationView;
+    Menu favMenu;
+    MenuItem menuItem;
 
 
     @Override
@@ -175,8 +146,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         drawer.setDrawerListener(toggle);
         toggle.syncState();
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(new NavigationListener());
+
+        loadFavMenu();
+        navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(new NavigationListener(getActivity()));
 
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -206,17 +179,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             }
         });
-        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
-            @Override
-            public boolean onNavigationItemSelected(MenuItem menuItem) {
-                int id = menuItem.getItemId();
-                if (id == R.id.nav_fav) {
-                    MainActivity activityMain = new MainActivity();
-                    activityMain.showFavs(getActivity());
-                }
-                return true;
-            }
-        });
+
 
         leastExpensive = (TextView) findViewById(R.id.least_expensive);
         mostExpensive = (TextView) findViewById(R.id.most_expensive);
@@ -251,13 +214,20 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onLocationChanged(Location location) {
                 if (!gotPosition) {
                     setLongAndLat(location);
-                    LatLng pos = new LatLng(latid, longit);
+
                     gotPosition = true;
                     progressDialog.dismiss();
                     mMap.clear();
                     mMap.moveCamera(CameraUpdateFactory.zoomTo(zoom));
-                    mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
-                    contactServer(longit, latid, "N/A", desiredYear, propertyType);
+                    if(favIntent){
+                        mMap.moveCamera(CameraUpdateFactory.newLatLng(favPosisiton));
+                        mMap.addMarker(new MarkerOptions().position(favPosisiton)
+                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                    }else{
+                        LatLng pos = new LatLng(latid, longit);
+                        mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
+                    }
+                    contactServer(longit, latid, "N/A", desiredYear, propertyType, getActivity());
                 }
             }
 
@@ -310,9 +280,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    public void contactServer(double longit, double latid, String budget, String year, String propertyType) {
+    public void contactServer(double longit, double latid, String budget, String year, String propertyType, Context c) {
         serverDialog.show();
-        Intent i = new Intent(getActivity(), ContactServerTask.class);
+        Intent i = new Intent(c, ContactServerTask.class);
         i.putExtra("longit", String.valueOf(longit));
         i.putExtra("latid", String.valueOf(latid));
         i.putExtra("URL", URL);
@@ -335,7 +305,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             i.putExtra("property_type", "N/A");
         }
-        getActivity().startService(i);
+        c.startService(i);
         searchBudget = false;
     }
 
@@ -463,7 +433,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             mMap.moveCamera(CameraUpdateFactory.zoomTo(zoom));
             mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
             userSearch.hide();
-            contactServer(pos.longitude, pos.latitude, "N/A", desiredYear, propertyType);
+            contactServer(pos.longitude, pos.latitude, "N/A", desiredYear, propertyType, getActivity());
 
         } catch (Exception e) {
             Snackbar.make(findViewById(android.R.id.content), "Sorry, we can't find the location you're looking for... Please try again", Snackbar.LENGTH_LONG)
@@ -590,12 +560,15 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 } catch (Exception e) {
 
                 }
-            }
-            //searches for houses values up to a certain price based on searchview's query
+            }         //searches for houses values up to a certain price based on searchview's query
             else {
                 searchBudget = true;
-                contactServer(longit, latid, intent.getStringExtra(SearchManager.QUERY), desiredYear, propertyType);
+                contactServer(longit, latid, intent.getStringExtra(SearchManager.QUERY), desiredYear, propertyType, getActivity());
             }
+        }else if(Intent.ACTION_SEND.equals(intent.getAction())){
+            //addHeatMap();
+            favIntent = true;
+            favPosisiton = new LatLng(intent.getDoubleExtra("Lat",latid),intent.getDoubleExtra("Lng",longit));
         }
     }
 
@@ -708,7 +681,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     if(!checkBox.isChecked()) {
                         desiredYear = ""+picker.getValue();
                     }
-                    contactServer(longit, latid, "N/A", desiredYear, propertyType);
+                    contactServer(longit, latid, "N/A", desiredYear, propertyType, getActivity());
                 }
             });
             builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -754,7 +727,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     propertyType = flags[selectedPropertyType];
-                    contactServer(longit, latid, "N/A", desiredYear, propertyType);
+                    contactServer(longit, latid, "N/A", desiredYear, propertyType,getActivity());
                 }
             });
             builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -817,31 +790,37 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         alertDialog.setPositiveButton("Yes",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
-                        Double lat = marker.getPosition().latitude;
-                        Double longit = marker.getPosition().longitude;
-                        String postcode = getPostCode(marker.getPosition().latitude, marker.getPosition().longitude);
-                        String address = getAddress(lat,longit);
-
-                           if (isFavourite(getActivity(), postcode)) {
-                                Toast.makeText(getActivity(), "Already a Favourite!", Toast.LENGTH_LONG).show();
-                            } else {
-                                if (addToFavourites(lat, longit, postcode,address,
-                                        marker.getTitle(), "createdat")) {
-                                    Toast.makeText(getActivity(), "Added to favourites", Toast.LENGTH_LONG).show();
+                        try {
+                            Double lat = marker.getPosition().latitude;
+                            Double longit = marker.getPosition().longitude;
+                            String postcode = getPostCode(marker.getPosition().latitude, marker.getPosition().longitude);
+                            String address = getAddress(lat,longit)+", ";
+                            //String[] coord = new SearchTask().execute(getString(R.string.browser_key), postcode).get();
+                            //String address = coord[2];
+                            if (getNumberOfFavourites() <= favaourite_max) {
+                                if (isFavourite(getActivity(), postcode,0)) {
+                                    Toast.makeText(getActivity(), "Already a Favourite!", Toast.LENGTH_LONG).show();
                                 } else {
-                                    Toast.makeText(getActivity(), "Sorry, could not add to favourites", Toast.LENGTH_LONG).show();
+                                    if (addToFavourites(lat, longit, postcode, address,marker.getTitle(), "createdat")) {
+                                        Toast.makeText(getActivity(), "Added to favourites", Toast.LENGTH_LONG).show();
+                                    } else {
+                                        Toast.makeText(getActivity(), "Sorry, could not add to favourites", Toast.LENGTH_LONG).show();
+                                    }
                                 }
+                            } else {
+                                Toast.makeText(getActivity(), "Sorry, you have execeeded allowed number of favourites", Toast.LENGTH_LONG).show();
                             }
-                    }
-                });
+                        } catch (Exception e) {
+                            Log.e("SEARCH_TASK","Error-SearchTask");
+                        }
+
+                }
+    });
 
         alertDialog.setNegativeButton("No",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.cancel();
-                        if(getFavourites(getActivity()).size()>0){
-                            Toast.makeText(getActivity(),String.valueOf(favs.get(1).size()),Toast.LENGTH_LONG).show();
-                        }
                     }
                 });
         alertDialog.show();
@@ -868,12 +847,49 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_POSTCODE,
                     values);
             if (newRowId > 0.0) {
+                //loadFavMenu();
+                addToFavMenu(address, newRowId);
                 return true;
             } else {
                 return false;
             }
         }catch (SQLiteException e){
             Log.i("SQLITE", e.getMessage());
+            return false;
+        }
+    }
+    public void addToFavMenu(String item, long id){
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        Menu favMenu = navigationView.getMenu();
+        MenuItem menuItem = favMenu.findItem(R.id.favs);
+        menuItem.getSubMenu().add(Menu.NONE, (int) id, Menu.NONE, item);
+        getMenuInflater().inflate(R.menu.activity_main_drawer, favMenu);
+    }
+    public void removeFromFavMenu(int id){
+        /*try {
+            navigationView = (NavigationView) findViewById(R.id.nav_view);
+            menuItem = navigationView.getMenu().getItem(R.id.favs);
+            menuItem.getSubMenu().removeItem(id);
+           getMenuInflater().inflate(R.menu.activity_main_drawer, favMenu);
+        }catch(Exception e){
+            Log.e("REMOVE_TASK",e.getMessage());
+        }*/
+    }
+    public boolean removeFromFavourite(Context c, int id){
+        if(isFavourite(c,null,id)) {
+            try {
+                FavouriteReaderDbHelper mDbHelper = new FavouriteReaderDbHelper(c);
+                SQLiteDatabase db = mDbHelper.getReadableDatabase();
+
+                String query = "DELETE FROM " + FavouriteDBSchema.FavouriteSchema.TABLE_NAME
+                        + " WHERE " + FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_ID + "=" + id;
+                db.execSQL(query);
+                removeFromFavMenu(id);
+                return true;
+            } catch (SQLiteException e) {
+                Log.i("SQLITE", e.getMessage());
+                return false;
+            }
         }
         return false;
     }
@@ -889,6 +905,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (results.moveToFirst()) {
                 while (results.isAfterLast() == false) {
                     ArrayList<String> fav = new ArrayList<>();
+                    fav.add(String.valueOf(results.getInt(results.getColumnIndexOrThrow(FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_ID))));
                     fav.add(results.getString(results.getColumnIndexOrThrow(FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_LATITUDE)));
                     fav.add(results.getString(results.getColumnIndexOrThrow(FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_LONGITUDE)));
                     fav.add(results.getString(results.getColumnIndexOrThrow(FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_POSTCODE)));
@@ -902,9 +919,33 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             Log.i("SQLITE", e.getMessage());
         }
     }
+    public String[] getFavouriteLatLng(Context c, int id){
+        String[] coord = {Double.toString(Double.MIN_VALUE)};
+        try {
+            FavouriteReaderDbHelper mDbHelper = new FavouriteReaderDbHelper(c);
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+
+            String query = "SELECT * FROM " + FavouriteDBSchema.FavouriteSchema.TABLE_NAME
+                            + " WHERE " + FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_ID + "="+id;
+            Cursor results = db.rawQuery(query, null);
 
 
-    boolean isFavourite(Context c, String postcode){
+            if (results.moveToFirst()) {
+                while (!results.isAfterLast()) {
+                     coord = new String[]{results.getString(results.getColumnIndexOrThrow(FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_LATITUDE)),
+                                          results.getString(results.getColumnIndexOrThrow(FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_LONGITUDE))
+                                        };
+                        results.moveToNext();
+                }
+                return  coord;            }
+        }catch(SQLiteException e){
+            Log.i("SQLITE", e.getMessage());
+        }
+        return null;
+    }
+
+
+    boolean isFavourite(Context c, String postcode, int id){
         try {
             FavouriteReaderDbHelper mDbHelper = new FavouriteReaderDbHelper(c);
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
@@ -912,7 +953,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (postcode != null) {
                 query = "SELECT * FROM " + FavouriteDBSchema.FavouriteSchema.TABLE_NAME + " WHERE " +
                         FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_POSTCODE + " = '" + postcode + "'";
-            } else {
+            }else if(id !=0) {
+                query = "SELECT * FROM " + FavouriteDBSchema.FavouriteSchema.TABLE_NAME + " WHERE " +
+                        FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_ID + "=" + id;
+            }else{
                 query = "SELECT * FROM " + FavouriteDBSchema.FavouriteSchema.TABLE_NAME;
             }
             Cursor results = db.rawQuery(query, null);
@@ -930,7 +974,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
     int getNumberOfFavourites(){
-        return favs.size();
+        return getFavourites(getActivity()).size();
     }
     ArrayList<ArrayList<String>> getFavourites(Context c){
         setFavourites(c);
@@ -958,7 +1002,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 address.append(addresses.get(0).getSubThoroughfare());
                 address.append(", ");
                 address.append(addresses.get(0).getThoroughfare());
-                address.append("\n");
+                address.append(", ");
                 address.append(addresses.get(0).getLocality());
                 return address.toString();
             }
@@ -966,6 +1010,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             Log.e("Geocoder", e.getMessage());
         }
         return null;
+    }
+    public void loadFavMenu(){
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        Menu favMenu = navigationView.getMenu();
+        MainActivity mainActivity = new MainActivity();
+        mainActivity.showFavs(getActivity(), favMenu);
+        MenuItem mi = favMenu.getItem(favMenu.size() - 1);
+        mi.setTitle(mi.getTitle());
     }
 }
 
@@ -1030,24 +1082,28 @@ class Receiver extends BroadcastReceiver {
                     .show();
         }
     }
+
 }
 
 class FavouriteReaderDbHelper extends SQLiteOpenHelper {
     public static final int DATABASE_VERSION = 1;
-    public static final String DATABASE_NAME = "myfavs.db";
+    public static final String DATABASE_NAME = "myfavss.db";
 
 
     final String TEXT_TYPE = " TEXT";
+    final String ID_TYPE = " INTEGER";
     final String COMMA_SEP = ",";
     final String SQL_CREATE_ENTRIES =
             "CREATE TABLE " + FavouriteDBSchema.FavouriteSchema.TABLE_NAME + " (" +
+                    FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_ID + ID_TYPE + " PRIMARY KEY AUTOINCREMENT" + COMMA_SEP +
                     FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_LATITUDE+ TEXT_TYPE + COMMA_SEP +
                     FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_LONGITUDE+ TEXT_TYPE + COMMA_SEP +
-                    FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_POSTCODE + TEXT_TYPE + " PRIMARY KEY" + COMMA_SEP +
+                    FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_POSTCODE + TEXT_TYPE + " UNIQUE" + COMMA_SEP +
                     FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_ADDRESS + TEXT_TYPE + COMMA_SEP +
                     FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_AVG_PRICE + TEXT_TYPE + COMMA_SEP +
                     FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_CREATED_AT + TEXT_TYPE +
                     " )";
+    //final String SQL_DELETE_ENTRY = "";
 
     public FavouriteReaderDbHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -1058,7 +1114,7 @@ class FavouriteReaderDbHelper extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // This database is only a cache for online data, so its upgrade policy is
         // to simply to discard the data and start over
-        //db.execSQL(SQL_DELETE_ENTRIES);
+      //  db.execSQL(SQL_DELETE_ENTRY);
         // onCreate(db);
     }
     public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {

@@ -48,7 +48,9 @@
                 android:resource="@xml/searchable" />
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
+                <action android:name="android.intent.action.SEND"/>
             </intent-filter>
+
         </activity>
         <activity
             android:name=".HouseList"
