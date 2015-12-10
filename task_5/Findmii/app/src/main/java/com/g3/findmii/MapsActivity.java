@@ -21,6 +21,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.provider.Settings;
+import android.support.design.internal.NavigationMenuPresenter;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
@@ -33,6 +34,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -62,6 +64,7 @@ import com.google.maps.android.heatmaps.WeightedLatLng;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -865,15 +868,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         menuItem.getSubMenu().add(Menu.NONE, (int) id, Menu.NONE, item);
         getMenuInflater().inflate(R.menu.activity_main_drawer, favMenu);
     }
-    public void removeFromFavMenu(int id){
-        /*try {
-            navigationView = (NavigationView) findViewById(R.id.nav_view);
-            menuItem = navigationView.getMenu().getItem(R.id.favs);
-            menuItem.getSubMenu().removeItem(id);
-           getMenuInflater().inflate(R.menu.activity_main_drawer, favMenu);
+    public boolean removeFromFavMenu(Context c, AlertDialog.Builder builder,int id, MenuItem mnuItem){
+        try {
+            mnuItem.setVisible(false);
+            return true;
         }catch(Exception e){
             Log.e("REMOVE_TASK",e.getMessage());
-        }*/
+            return false;
+        }
     }
     public boolean removeFromFavourite(Context c, int id){
         if(isFavourite(c,null,id)) {
@@ -884,14 +886,27 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 String query = "DELETE FROM " + FavouriteDBSchema.FavouriteSchema.TABLE_NAME
                         + " WHERE " + FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_ID + "=" + id;
                 db.execSQL(query);
-                removeFromFavMenu(id);
                 return true;
             } catch (SQLiteException e) {
                 Log.i("SQLITE", e.getMessage());
                 return false;
             }
+        }else {
+
+            return false;
         }
-        return false;
+    }
+    static NavigationMenuPresenter getNavigationMenuPresenter(NavigationView view){
+        try {
+            Field presenterField = NavigationView.class.getDeclaredField("mPresenter");
+            presenterField.setAccessible(true);
+            return (NavigationMenuPresenter) presenterField.get(view);
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
     void setFavourites(Context c) {
         try {

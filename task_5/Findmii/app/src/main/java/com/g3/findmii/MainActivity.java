@@ -146,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
             //Toast.makeText(MainActivity.this, "You have not added any Favourites", Toast.LENGTH_LONG).show();
            menuItem.getSubMenu().add("No Favourites");
         } else {
-            displayFavouriteList(favs, c, menu);
+                displayFavouriteList(favs, c, menu);
         }
     }
 
