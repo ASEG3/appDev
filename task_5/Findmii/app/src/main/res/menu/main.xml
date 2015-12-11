@@ -1,0 +1,64 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".MainActivity">
+    <item
+        android:id="@+id/about_us"
+        android:orderInCategory="100"
+        android:title="About Us"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/map_type"
+        android:orderInCategory="1"
+        android:title="Map Type"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/year"
+        android:orderInCategory="2"
+        android:title="Refine Year"
+        app:showAsAction="never"
+        />
+    <item
+        android:id="@+id/comparison"
+        android:orderInCategory="6"
+        android:title="Compare Locations"
+        app:showAsAction="never"
+        />
+    <item
+        android:id="@+id/colour_bar_toggle"
+        android:orderInCategory="7"
+        android:title="Toggle Legend"
+        app:showAsAction="never"
+        />
+    <item
+        android:id="@+id/property_preferences"
+        android:orderInCategory="8"
+        android:title="Change Property Type"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/add_place"
+        android:icon="@drawable/favourite"
+        android:title="Add Favourite"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/search_item"
+        android:icon="@drawable/search_icon"
+        android:title="Search"
+        app:showAsAction="ifRoom">
+        <menu>
+            <item
+                android:id="@+id/location_search"
+                android:title="Search For A Location..."
+                app:actionViewClass="android.support.v7.widget.SearchView"
+                app:showAsAction="collapseActionView|ifRoom"
+                />
+            <item
+                android:id="@+id/budget_search"
+                android:title="Search Within A Budget..."
+                app:actionViewClass="android.support.v7.widget.SearchView"
+                app:showAsAction="collapseActionView|ifRoom" />
+        </menu>
+    </item>
+
+</menu>
