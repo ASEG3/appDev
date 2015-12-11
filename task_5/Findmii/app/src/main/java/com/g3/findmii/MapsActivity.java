@@ -54,6 +54,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.TileOverlay;
@@ -66,6 +67,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -89,7 +91,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     ArrayList<WeightedLatLng> hmapData;
     HeatmapTileProvider mHeatMapProvider;
     TileOverlay mHeatMapTileOverlay;
-    final static Float zoom = 13.0f;
+    final static Float zoom = 12.5f;
     boolean isServerResponded = false;
     Menu menu;
     SearchManager searchManager;
@@ -99,7 +101,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     MenuItem budgetItem;
     boolean searchAddress;
     boolean searchBudget;
-    ArrayList<Marker> hMapMarkers;
     ArrayList<ArrayList<String>> favs;
     boolean showColourBar = false;
     TextView leastExpensive;
@@ -109,6 +110,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     String propertyType = "N/A";
     int selectedPropertyType = 0;
     String desiredYear = "N/A";
+    String budget = "";
+    HashMap<LatLng, Double> currentLatLng = new HashMap<>();
+    HashMap<LatLng, Marker> hMapMarkers = new HashMap<>();
     final int favaourite_max = 10;
     LatLng favPosisiton;
     boolean favIntent=false;
@@ -367,20 +371,42 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.clear();
         mMap.getUiSettings().setZoomGesturesEnabled(true);
         mHeatMapProvider = new HeatmapTileProvider.Builder().weightedData(hmapData).build();
-        mHeatMapProvider.setRadius(20);
+        mHeatMapProvider.setRadius(22);
         mHeatMapTileOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mHeatMapProvider));
         mHeatMapTileOverlay.clearTileCache();
-        hMapMarkers = new ArrayList<>();
 
         mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
             @Override
             public void onCameraChange(CameraPosition pos) {
-                if (pos.zoom > 15.0f) {
-                    addHeatmapMarkers(latlngs, averagePrice, mMap);
-                } else {
-                    removeHeatMapMarkers();
-                    // mMap.addMarker(new MarkerOptions().position(new LatLng(latid, longit)).title("Here you are")
-                    //       .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                if (pos.zoom > 16.2f) {
+                    mHeatMapProvider.setRadius(60);
+                    mHeatMapTileOverlay.clearTileCache();
+                    LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
+                    for(LatLng current : latlngs){
+                        if(bounds.contains(current)){
+                            if(!currentLatLng.containsKey(current)){
+                                Marker marker = mMap.addMarker(new MarkerOptions().position(current).title("" + averagePrice.get(latlngs.indexOf(current))));
+                                currentLatLng.put(current, averagePrice.get(latlngs.indexOf(current)));
+                                hMapMarkers.put(current, marker);
+                            }
+                        }
+                        else
+                        {
+                            if(currentLatLng.containsKey(current)){
+                                Marker marker = hMapMarkers.get(current);
+                                hMapMarkers.remove(current);
+                                currentLatLng.remove(current);
+                                marker.remove();
+                            }
+                        }
+                    }
+                }
+                else{
+                    for(LatLng current : hMapMarkers.keySet()){
+                        Marker marker = hMapMarkers.get(current);
+                        marker.remove();
+                    }
+                    currentLatLng.clear();
                 }
             }
         });
@@ -391,31 +417,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 return false; // shows default as well
             }
         });
-    }
-
-
-
-    /** places the points on the heatmap
-     * @params dataLatLng, avgPrice, mMap: info from server
-     **/
-    private void addHeatmapMarkers(ArrayList<LatLng> dataLatLng, ArrayList<Double> avgPrice, GoogleMap mMap) {
-
-        for (int i = 0; i < dataLatLng.size(); i++) {
-            Marker mMapMarker = mMap.addMarker(new MarkerOptions().position(dataLatLng.get(i)).title("Average price: £" + avgPrice.get(i).toString()));
-            hMapMarkers.add(mMapMarker);
-        }
-    }
-
-    /** removes marker points from heat map
-     *
-     */
-    private void removeHeatMapMarkers(){
-        if(hMapMarkers.size()>0){
-            for(int i=0;i< hMapMarkers.size();i++){
-                hMapMarkers.get(i).remove();
-            }
-        }
-
     }
 
     /**
@@ -565,14 +566,48 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             }         //searches for houses values up to a certain price based on searchview's query
             else {
-                searchBudget = true;
-                contactServer(longit, latid, intent.getStringExtra(SearchManager.QUERY), desiredYear, propertyType, getActivity());
+                if(budgetRegexp(intent.getStringExtra(SearchManager.QUERY))) {
+                    searchBudget = true;
+                    contactServer(longit, latid, budget, desiredYear, propertyType, getApplicationContext());
+                }
+                else{
+                    Snackbar.make(findViewById(android.R.id.content), "Sorry, the value you entered isn't recognised, please try again", Snackbar.LENGTH_LONG)
+                            .setActionTextColor(Color.RED)
+                            .show();
+                }
             }
         }else if(Intent.ACTION_SEND.equals(intent.getAction())){
             //addHeatMap();
             favIntent = true;
             favPosisiton = new LatLng(intent.getDoubleExtra("Lat",latid),intent.getDoubleExtra("Lng",longit));
         }
+    }
+
+    public boolean budgetRegexp(String query) {
+        if (query.charAt(0) != '£') {
+            query = "£" + query;
+        }
+        if(query.matches("^(([£])?((([0-9]{1,3},)+[0-9]{3})|[0-9]+)?)$")){
+            query = query.replaceAll("£|,", "");
+            budget = query;
+            return true;
+        }
+        return false;
+    }
+
+    private void dismissProgressDialog() {
+        if (progressDialog != null && progressDialog.isShowing()) {
+            progressDialog.dismiss();
+        }
+        if (serverDialog != null && serverDialog.isShowing()) {
+            serverDialog.dismiss();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        dismissProgressDialog();
+        super.onDestroy();
     }
 
     /**
@@ -817,8 +852,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                             Log.e("SEARCH_TASK","Error-SearchTask");
                         }
 
-                }
-    });
+                    }
+                });
 
         alertDialog.setNegativeButton("No",
                 new DialogInterface.OnClickListener() {
@@ -901,9 +936,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             Field presenterField = NavigationView.class.getDeclaredField("mPresenter");
             presenterField.setAccessible(true);
             return (NavigationMenuPresenter) presenterField.get(view);
-        } catch (NoSuchFieldException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
@@ -918,7 +951,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             favs = new ArrayList<>();
 
             if (results.moveToFirst()) {
-                while (results.isAfterLast() == false) {
+                while (!results.isAfterLast()) {
                     ArrayList<String> fav = new ArrayList<>();
                     fav.add(String.valueOf(results.getInt(results.getColumnIndexOrThrow(FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_ID))));
                     fav.add(results.getString(results.getColumnIndexOrThrow(FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_LATITUDE)));
@@ -941,16 +974,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
 
             String query = "SELECT * FROM " + FavouriteDBSchema.FavouriteSchema.TABLE_NAME
-                            + " WHERE " + FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_ID + "="+id;
+                    + " WHERE " + FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_ID + "="+id;
             Cursor results = db.rawQuery(query, null);
 
 
             if (results.moveToFirst()) {
                 while (!results.isAfterLast()) {
-                     coord = new String[]{results.getString(results.getColumnIndexOrThrow(FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_LATITUDE)),
-                                          results.getString(results.getColumnIndexOrThrow(FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_LONGITUDE))
-                                        };
-                        results.moveToNext();
+                    coord = new String[]{results.getString(results.getColumnIndexOrThrow(FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_LATITUDE)),
+                            results.getString(results.getColumnIndexOrThrow(FavouriteDBSchema.FavouriteSchema.COLUMN_NAME_LONGITUDE))
+                    };
+                    results.moveToNext();
                 }
                 return  coord;            }
         }catch(SQLiteException e){
@@ -1055,32 +1088,32 @@ class Receiver extends BroadcastReceiver {
             ByteArrayInputStream in = new ByteArrayInputStream(container);
             try {
                 ObjectInputStream is = new ObjectInputStream(in);
-                    mapsActivity.message = (Message) is.readObject();
-                    if (mapsActivity.message.getSizeOfWeighted() > 0) {
-                        mapsActivity.weightedLatLng = mapsActivity.message.getHouse();
-                        mapsActivity.listOfHouses = mapsActivity.message.getHouses();
-                        mapsActivity.serverDialog.hide();
+                mapsActivity.message = (Message) is.readObject();
+                if (mapsActivity.message.getSizeOfWeighted() > 0) {
+                    mapsActivity.weightedLatLng = mapsActivity.message.getHouse();
+                    mapsActivity.listOfHouses = mapsActivity.message.getHouses();
+                    mapsActivity.serverDialog.hide();
 
-                        mapsActivity.mostExpensive.setText("£" + mapsActivity.message.getMostExpensive());
-                        mapsActivity.leastExpensive.setText("£" + mapsActivity.message.getLeastExpensive());
+                    mapsActivity.mostExpensive.setText("£" + mapsActivity.message.getMostExpensive());
+                    mapsActivity.leastExpensive.setText("£" + mapsActivity.message.getLeastExpensive());
 
-                        //set heatmap data
-                        mapsActivity.setDataFromServer(mapsActivity.weightedLatLng);
-                        mapsActivity.setHeatmapData(mapsActivity.latlngs, mapsActivity.weights);
-                        mapsActivity.isServerResponded = true;
-                        Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Generated Heatmap", Snackbar.LENGTH_LONG)
-                                .setActionTextColor(Color.RED)
-                                .show();
-                        Log.w("WE GOT OKAY", "ITS ALL GOOD");
-                        mapsActivity.addHeatMap();
-                        mapsActivity.serverDialog.hide();
-                    } else {
-                        mapsActivity.serverDialog.hide();
-                        Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Server is not reachable", Snackbar.LENGTH_LONG)
-                                .setActionTextColor(Color.RED)
-                                .show();
-                        Log.i("EMPTY_RESPONSE", "Server returned empty data, most likely, database issue");
-                    }
+                    //set heatmap data
+                    mapsActivity.setDataFromServer(mapsActivity.weightedLatLng);
+                    mapsActivity.setHeatmapData(mapsActivity.latlngs, mapsActivity.weights);
+                    mapsActivity.isServerResponded = true;
+                    Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Generated Heatmap", Snackbar.LENGTH_LONG)
+                            .setActionTextColor(Color.RED)
+                            .show();
+                    Log.w("WE GOT OKAY", "ITS ALL GOOD");
+                    mapsActivity.addHeatMap();
+                    mapsActivity.serverDialog.hide();
+                } else {
+                    mapsActivity.serverDialog.hide();
+                    Snackbar.make(mapsActivity.findViewById(android.R.id.content), "Server is not reachable", Snackbar.LENGTH_LONG)
+                            .setActionTextColor(Color.RED)
+                            .show();
+                    Log.i("EMPTY_RESPONSE", "Server returned empty data, most likely, database issue");
+                }
 
             } catch (Exception e) {
                 mapsActivity.serverDialog.hide();
@@ -1129,7 +1162,7 @@ class FavouriteReaderDbHelper extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // This database is only a cache for online data, so its upgrade policy is
         // to simply to discard the data and start over
-      //  db.execSQL(SQL_DELETE_ENTRY);
+        //  db.execSQL(SQL_DELETE_ENTRY);
         // onCreate(db);
     }
     public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {

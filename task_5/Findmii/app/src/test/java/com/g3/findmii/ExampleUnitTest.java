@@ -3,11 +3,13 @@ package com.g3.findmii;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * To work on unit tests, switch the Test Artifact in the Build Variants view.
  */
-public class MapsActivityTest {
+public class ExampleUnitTest {
     @Test
     public void addition_isCorrect() throws Exception {
         assertEquals(4, 2 + 2);

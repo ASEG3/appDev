@@ -5,8 +5,8 @@
         <menu>
             <!-- <item android:id="@+id/nav_share" android:icon="@android:drawable/ic_menu_share"
                  android:title="F" />-->
-           <!-- <item android:id="@+id/nav_fav" android:icon="@android:drawable/ic_menu_myplaces"
-                android:title="Favs" />-->
+            <!-- <item android:id="@+id/nav_fav" android:icon="@android:drawable/ic_menu_myplaces"
+                 android:title="Favs" />-->
         </menu>
     </item>
 

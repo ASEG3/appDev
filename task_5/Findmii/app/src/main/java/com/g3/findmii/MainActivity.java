@@ -144,9 +144,9 @@ public class MainActivity extends AppCompatActivity {
         MenuItem menuItem = menu.findItem(R.id.favs);
         if (!favs.isFavourite(c, null,0)) {
             //Toast.makeText(MainActivity.this, "You have not added any Favourites", Toast.LENGTH_LONG).show();
-           menuItem.getSubMenu().add("No Favourites");
+            menuItem.getSubMenu().add("No Favourites");
         } else {
-                displayFavouriteList(favs, c, menu);
+            displayFavouriteList(favs, c, menu);
         }
     }
 

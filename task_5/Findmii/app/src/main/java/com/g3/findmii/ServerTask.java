@@ -32,14 +32,14 @@ public class ServerTask extends AsyncTask<String, Void, byte[]> {
         List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
         nameValuePairs.add(new BasicNameValuePair("latitude", params[1]));
         nameValuePairs.add(new BasicNameValuePair("longitude", params[2]));
-        if(!params[2].equals("N/A"))
+        if(!params[3].equals("N/A"))
         {
             nameValuePairs.add(new BasicNameValuePair("budget", params[3]));
         }
-        if(!params[3].equals("N/A")){
+        if(!params[4].equals("N/A")){
             nameValuePairs.add(new BasicNameValuePair("specificYear", params[4]));
         }
-        if(!params[4].equals("N/A")){
+        if(!params[5].equals("N/A")){
             nameValuePairs.add(new BasicNameValuePair(params[5], "something"));
         }
         // Execute HTTP Post Request
