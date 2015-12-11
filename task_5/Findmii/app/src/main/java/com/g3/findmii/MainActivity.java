@@ -19,9 +19,6 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
-import android.widget.Toast;
-
-import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
 
@@ -29,8 +26,8 @@ public class MainActivity extends AppCompatActivity {
 
     ArrayList<ArrayList<String>> favList;
     LocationManager lm;
-    boolean gps_enabled;
-    boolean network_enabled;
+    boolean gpsEnabled;
+    boolean networkEnabled;
     Menu favMenu;
     SubMenu favSubMenu;
     NavigationView navigationView;
@@ -42,8 +39,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        gps_enabled = false;
-        network_enabled = false;
+        gpsEnabled = false;
+        networkEnabled = false;
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -144,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
         MenuItem menuItem = menu.findItem(R.id.favs);
         if (!favs.isFavourite(c, null,0)) {
             //Toast.makeText(MainActivity.this, "You have not added any Favourites", Toast.LENGTH_LONG).show();
-            menuItem.getSubMenu().add("No Favourites");
+            menuItem.getSubMenu().add(Menu.NONE, -1, Menu.NONE, "No Favourites");
         } else {
             displayFavouriteList(favs, c, menu);
         }

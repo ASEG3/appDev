@@ -34,7 +34,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -113,8 +112,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     String budget = "";
     HashMap<LatLng, Double> currentLatLng = new HashMap<>();
     HashMap<LatLng, Marker> hMapMarkers = new HashMap<>();
-    final int favaourite_max = 10;
-    LatLng favPosisiton;
+    final int favouriteMax = 10;
+    LatLng favPosition;
     boolean favIntent=false;
     NavigationView navigationView;
     Menu favMenu;
@@ -227,8 +226,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     mMap.clear();
                     mMap.moveCamera(CameraUpdateFactory.zoomTo(zoom));
                     if(favIntent){
-                        mMap.moveCamera(CameraUpdateFactory.newLatLng(favPosisiton));
-                        mMap.addMarker(new MarkerOptions().position(favPosisiton)
+                        mMap.moveCamera(CameraUpdateFactory.newLatLng(favPosition));
+                        mMap.addMarker(new MarkerOptions().position(favPosition)
                                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
                     }else{
                         LatLng pos = new LatLng(latid, longit);
@@ -369,9 +368,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void addHeatMap() {
         mMap.clear();
+        mMap.addMarker(new MarkerOptions().position(new LatLng(latid, longit)).title("You are here.")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)));
         mMap.getUiSettings().setZoomGesturesEnabled(true);
         mHeatMapProvider = new HeatmapTileProvider.Builder().weightedData(hmapData).build();
-        mHeatMapProvider.setRadius(22);
+        mHeatMapProvider.setRadius(15);
         mHeatMapTileOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mHeatMapProvider));
         mHeatMapTileOverlay.clearTileCache();
 
@@ -385,7 +386,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     for(LatLng current : latlngs){
                         if(bounds.contains(current)){
                             if(!currentLatLng.containsKey(current)){
-                                Marker marker = mMap.addMarker(new MarkerOptions().position(current).title("" + averagePrice.get(latlngs.indexOf(current))));
+                                Marker marker = mMap.addMarker(new MarkerOptions().position(current).title(getPostCode(current.latitude, current.longitude)).snippet("£ " + Math.round(averagePrice.get(latlngs.indexOf(current))*100)/100.0));
                                 currentLatLng.put(current, averagePrice.get(latlngs.indexOf(current)));
                                 hMapMarkers.put(current, marker);
                             }
@@ -579,7 +580,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }else if(Intent.ACTION_SEND.equals(intent.getAction())){
             //addHeatMap();
             favIntent = true;
-            favPosisiton = new LatLng(intent.getDoubleExtra("Lat",latid),intent.getDoubleExtra("Lng",longit));
+            favPosition = new LatLng(intent.getDoubleExtra("Lat",latid),intent.getDoubleExtra("Lng",longit));
         }
     }
 
@@ -835,7 +836,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                             String address = getAddress(lat,longit)+", ";
                             //String[] coord = new SearchTask().execute(getString(R.string.browser_key), postcode).get();
                             //String address = coord[2];
-                            if (getNumberOfFavourites() <= favaourite_max) {
+                            if (getNumberOfFavourites() <= favouriteMax) {
                                 if (isFavourite(getActivity(), postcode,0)) {
                                     Toast.makeText(getActivity(), "Already a Favourite!", Toast.LENGTH_LONG).show();
                                 } else {
@@ -900,6 +901,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         Menu favMenu = navigationView.getMenu();
         MenuItem menuItem = favMenu.findItem(R.id.favs);
+        //menuItem.getSubMenu().getItem(-2).setVisible(false);
         menuItem.getSubMenu().add(Menu.NONE, (int) id, Menu.NONE, item);
         getMenuInflater().inflate(R.menu.activity_main_drawer, favMenu);
     }
